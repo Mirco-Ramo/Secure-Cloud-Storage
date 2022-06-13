@@ -3,7 +3,7 @@
 //
 
 
-#include "server_functions.cpp"
+#include "server_conn_functions.cpp"
 
 int main(int argc,char* argv[]){
     cout << "Initialization in progress ..."<<endl;
