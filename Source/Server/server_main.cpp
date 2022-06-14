@@ -4,6 +4,8 @@
 
 
 #include "server_conn_functions.cpp"
+#include "worker_logic_functions.cpp"
+#include "worker_protocol_functions.cpp"
 
 int main(int argc,char* argv[]){
     cout << "Initialization in progress ..."<<endl;
