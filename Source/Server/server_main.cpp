@@ -7,11 +7,10 @@
 
 int main(int argc,char* argv[]){
     cout << "Initialization in progress ..."<<endl;
-    Server* s = new Server();
-    s->init();
-    cout << "Initialization terminated ..."<<endl;
+    init();
 
-    s->listen_connections();
+    cout << "Initialization terminated ..."<<endl;
+    listen_connections();           //main server loop
 
     return 0;
 }

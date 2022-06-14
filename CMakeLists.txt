@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 include_directories(Source/Client)
 include_directories(Source/Server)
+include_directories(arpa)
 
 add_executable(Secure_Cloud_Storage
         Source/Server/server_main.cpp

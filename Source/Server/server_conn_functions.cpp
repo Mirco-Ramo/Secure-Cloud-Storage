@@ -2,11 +2,18 @@
 // Created by Francesco del Turco, Mirco Ramo
 //
 
-#include "server.h"
+#include "server_include.h"
+void init();
+void listen_connections();
+void shutdown_server(int);
 
-void Server::init() {
-    cout << "Hello world!"<<endl;
+void init() {
+    signal(SIGINT,shutdown_server);
 }
-void Server::listen_connections() {
+void listen_connections() {
     cout<<"Listening for connections"<<endl;
+}
+
+void shutdown_server(int received_signal){
+    signal(SIGINT, SIG_IGN);
 }
