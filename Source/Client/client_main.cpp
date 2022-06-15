@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
         }
     } while (username.size() > MAX_USERNAME_LEN);
 
-    int ret = check_file_name(username);
+    int ret = check_username(username);
     if (!ret) {
         cerr << "Invalid username\n";
         exit(-1);

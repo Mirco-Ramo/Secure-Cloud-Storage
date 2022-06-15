@@ -18,16 +18,19 @@
 #define LISTENER_SOCKET_ERROR 1
 
 /*          LIBRARIES                */
-#include <signal.h>
+#include <csignal>
 #include "string.h"
 #include "cstring"
 #include <iostream>
 #include <sys/types.h>
-#include <errno.h>
+#include <cerrno>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h>
-#include <time.h>
+#include <ctime>
+#include <cstdlib>
+#include <vector>
+#include <thread>
+#include "pthread.h"
 using namespace std;
