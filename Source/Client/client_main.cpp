@@ -37,10 +37,21 @@ int main(int argc, char** argv) {
     //TODO begin_session()
 
     cout<<HELP_MESSAGE<<endl;
-    cout<<PROMPT;
+    cout<<PROMPT << endl << PROMPT;
 
     bool logout_request = false;
     while(!logout_request) {
+        cout << "Please, enter a command (type HELP to see a list of commands available): " << endl << PROMPT;
+        string command;
+        cin >> command;
+        //TODO sanitize all the commands before if-else
+        if(command.compare("HELP") == 0){
+            cout << HELP_MESSAGE << endl << PROMPT;
+        }
+        else if(command.compare("LIST") == 0){
+            handle_list();
+        }
+        //TODO consider if doing command and then request elements later for simplicity
         //TODO logout_request = accept_commands()
         logout_request=true;
     }

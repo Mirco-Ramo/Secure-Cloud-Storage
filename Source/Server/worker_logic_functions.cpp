@@ -27,7 +27,31 @@ void* Worker::handle_commands() {
         if (echo.length()>10)
             logout_request=true;
         //TODO wait for command
+
+        /*
+        message msg = {};
+        int ret = recv_msg_from_client(this->socket_id, &msg);
+        if(ret <= 0){
+            cout << "Worker for: " << this->username << ". Failed to receive message " << msg.header.opcode << msg.header.seq_number <<endl;
+            free(&msg);
+            continue;
+        }
         //TODO call relative function
+        switch(msg.header.opcode){
+            case LIST:
+                handle_list();
+            case UPLOAD_INIT:
+                handle_upload();
+            case RENAME_REQ:
+                handle_rename();
+            case DOWNLOAD_REQ:
+                handle_download();
+            case DELETE_REQ:
+                handle_delete();
+            case LOGOUT_REQ:
+                handle_logout();
+        }
+         */
     }
     //TODO call logout
     delete this;

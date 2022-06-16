@@ -27,3 +27,4 @@ int recv_msg_from_server(int socket_id, message *msg);
 /*              SECURE CODING                      */
 bool check_username(const string& username);
 bool check_file_name(const string& file_name);
+void handle_list();
