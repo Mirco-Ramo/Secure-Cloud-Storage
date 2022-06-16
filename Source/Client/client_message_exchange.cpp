@@ -2,11 +2,10 @@
 // Created by Francesco del Turco, Mirco Ramo
 //
 
-#include "server_include.h"
-#include "worker.h"
+#include "client_include.h"
+#include "struct_message.h"
 
-
-message* Worker::build_message(unsigned char* iv, unsigned long payload_length, unsigned char* na, unsigned char* nb, unsigned char* payload, unsigned char* hmac){
+message* build_message(unsigned char* iv, unsigned long payload_length, unsigned char* na, unsigned char* nb, unsigned char* payload, unsigned char* hmac){
     message m{};
     if (payload_length>MAX_PAYLOAD_LENGTH)
         return NULL;
@@ -35,18 +34,18 @@ message* Worker::build_message(unsigned char* iv, unsigned long payload_length, 
     return &m;
 }
 
-int Worker::send_data_to_client(int socket_id, unsigned char* data, int data_length){
+int send_data_to_server(int socket_id, unsigned char* data, int data_length){
     //TODO
 }
 
-int Worker::send_msg_to_client(int socket_id, message msg){
+int send_msg_to_server(int socket_id, message msg){
     //TODO
 }
 
-int Worker::recv_msg_from_client(int socket_id, message *msg) {
+int recv_msg_from_server(int socket_id, message *msg) {
     //TODO
 }
 
-int Worker::recv_data_from_client(int socket_id, unsigned char *data, int *data_length) {
+int recv_data_from_server(int socket_id, unsigned char *data, int *data_length) {
     //TODO
 }

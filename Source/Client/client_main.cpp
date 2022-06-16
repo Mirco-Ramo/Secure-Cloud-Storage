@@ -2,9 +2,8 @@
 // Created by Francesco Del Turco, Mirco Ramo
 //
 
-#include "client_conn_functions.cpp"
-#include "client_logic_functions.cpp"
-#include "client_protocol_functions.cpp"
+#include "client_include.h"
+#include "client_functions.h"
 
 int client_socket;
 string username;
@@ -36,6 +35,10 @@ int main(int argc, char** argv) {
         exit(-2);
 
     //TODO begin_session()
+
+    cout<<HELP_MESSAGE<<endl;
+    cout<<PROMPT;
+
     bool logout_request = false;
     while(!logout_request) {
         //TODO logout_request = accept_commands()

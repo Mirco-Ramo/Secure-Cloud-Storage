@@ -21,4 +21,9 @@ add_executable(Server Source/Server/server_main.cpp
         Source/Server/worker_message_exchange.cpp)
 
 add_executable(Client Source/Client/client_main.cpp
-        Source/Client/struct_message.h)
+        Source/Client/struct_message.h
+        Source/Client/client_message_exchange.cpp
+        Source/Client/client_functions.h
+        Source/Client/client_conn_functions.cpp
+        Source/Client/client_logic_functions.cpp
+        Source/Client/client_protocol_functions.cpp)

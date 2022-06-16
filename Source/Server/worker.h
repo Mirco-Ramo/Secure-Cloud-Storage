@@ -36,6 +36,8 @@ public:
     message* build_message(unsigned char*, unsigned long, unsigned char*, unsigned char*, unsigned char*, unsigned char*);
     int send_msg_to_client(int socket_id, message msg);
     int send_data_to_client(int socket_id, unsigned char* data, int data_length);
+    int recv_msg_from_client(int socket_id, message* msg);
+    int recv_data_from_client(int socket_id, unsigned char* data, int* data_length);
 
     /*      LOGIC COMMANDS          */
     void* handle_commands(void);
