@@ -33,11 +33,9 @@ public:
     static bool check_file_name(const string& file_name);
 
     /*      MESSAGE EXCHANGE        */
-    message* build_message(unsigned char*, unsigned long, unsigned char*, unsigned char*, unsigned char*, unsigned char*);
+    message* build_message(unsigned char*, unsigned char, unsigned int, unsigned char*, unsigned char*, unsigned short, unsigned char*, bool);
     int send_msg_to_client(int socket_id, message msg);
-    int send_data_to_client(int socket_id, unsigned char* data, int data_length);
     int recv_msg_from_client(int socket_id, message* msg);
-    int recv_data_from_client(int socket_id, unsigned char* data, int* data_length);
 
     /*      LOGIC COMMANDS          */
     void* handle_commands(void);
@@ -49,5 +47,6 @@ public:
     void handle_delete();
     void handle_logout();
     ~Worker(); //destroy every sensible information, like exchanged keys
+
 };
 #endif //SECURE_CLOUD_STORAGE_WORKER_H

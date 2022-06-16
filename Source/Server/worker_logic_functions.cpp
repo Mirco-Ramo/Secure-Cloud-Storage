@@ -36,10 +36,38 @@ void* Worker::handle_commands() {
 
 void Worker::handle_download() {
     //TODO
+    //open file
+    //counter=1
+    //for(file.begin;file.end;1MB)
+    //  read_chunck
+    //  encrypt_chunck
+    //  build_message(iv, payload_length, counter, na, nb, true)
+    //  send message
+    //  counter++
 }
 
 void Worker::handle_upload() {
     //TODO
+    //open file
+    //receive file length
+    //open dest_file
+    //unreceived=[]
+    //for(counter=1; counter<file_size/chunk_size; counter++)
+    //  receive_msg
+    //  if(hash(msg) == msg.hmac)
+    //      fwrite(payload, counter*chunk_size)
+    //  else
+    //      fwrite(0, counter*chunk_size)
+    //      unreceived.push_back(counter)
+    //while(unreceived!=empty)
+    //  send(unreceived)
+    //  for (unreceived.length)
+    //      recv_chunk
+    //  if(hash(chunk) == chunk.hmac)
+    //    fwrite(chunk, chunk_index*chunk_size)
+    //    unreceived.remove(index)
+    //
+
 }
 
 void Worker::handle_list() {

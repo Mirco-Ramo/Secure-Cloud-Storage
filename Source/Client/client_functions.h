@@ -15,17 +15,13 @@ void shutdown(int received_signal);
 
 
 /*              MESSAGE EXCHANGE                */
-message* build_message(unsigned char* iv,
-                       unsigned long payload_length,
-                       unsigned char* na,
-                       unsigned char* nb,
-                       unsigned char* payload,
-                       unsigned char* hmac);
+message* build_message(unsigned char* iv, unsigned char opcode,
+                       unsigned int payload_length, unsigned char* na,
+                       unsigned char* nb, unsigned short seq_number,
+                       unsigned char* payload, bool hmac)
 
-int send_data_to_server(int socket_id, unsigned char* data, int data_length);
 int send_msg_to_server(int socket_id, message msg);
 int recv_msg_from_server(int socket_id, message *msg);
-int recv_data_from_server(int socket_id, unsigned char *data, int *data_length);
 
 
 /*              SECURE CODING                      */

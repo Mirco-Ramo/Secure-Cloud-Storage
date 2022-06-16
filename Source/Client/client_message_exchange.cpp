@@ -5,12 +5,17 @@
 #include "client_include.h"
 #include "struct_message.h"
 
-message* build_message(unsigned char* iv, unsigned long payload_length, unsigned char* na, unsigned char* nb, unsigned char* payload, unsigned char* hmac){
+message* build_message(unsigned char* iv, unsigned char opcode,
+                               unsigned int payload_length, unsigned char* na,
+                               unsigned char* nb, unsigned short seq_number,
+                               unsigned char* payload, bool hmac){
+
+    fixed_header h{};
+    memcpy(h.initialization_vector, iv, IV_LENGTH);
+    h.opcode = opcode;
+    h.payload_length = payload_length;
     message m{};
-    if (payload_length>MAX_PAYLOAD_LENGTH)
-        return NULL;
-    memcpy(m.header.initialization_vector, iv, IV_LENGTH);
-    m.payload_length = (unsigned int)payload_length;
+    m.header = h;
     if(na){
         m.header.nonceA_present=true;
         m.nonceA = na;
@@ -23,29 +28,105 @@ message* build_message(unsigned char* iv, unsigned long payload_length, unsigned
     }
     else
         m.header.nonceB_present=false;
-
+    m.header.seq_number = seq_number;
     m.payload=payload;
 
     if(hmac)
-        memcpy(m.hmac, hmac, DIGEST_LEN);
-    else
-        m.hmac=NULL;
+        //compute hmac
+        int a=0;
 
     return &m;
 }
 
-int send_data_to_server(int socket_id, unsigned char* data, int data_length){
-    //TODO
-}
 
 int send_msg_to_server(int socket_id, message msg){
-    //TODO
+    int ret;
+    unsigned char* buffer_message;
+    unsigned int total_len = FIXED_HEADER_LENGTH + (msg.header.nonceA_present ? NONCE_LENGTH : 0) +
+                             (msg.header.nonceB_present ? NONCE_LENGTH : 0) + msg.header.payload_length + (msg.hmac? DIGEST_LEN : 0);
+    unsigned int len = htons(total_len);
+
+    //send to client how many bytes to receive
+    ret = send(socket_id,(void*)&len,sizeof(unsigned short),0);
+    if(ret < (int)sizeof(unsigned short)){
+        cout <<"Cannot send message through socket"<<endl;
+        return -1;
+    }
+
+    if (total_len > UINT_MAX/sizeof(unsigned char)) {
+        cout << "Message size too long, cannot allocate buffer" << endl;
+        return -1;
+    }
+    buffer_message = (unsigned char*)malloc(sizeof(unsigned char) * total_len);
+    if(!buffer_message){
+        cout << "Cannot allocate buffer" << endl;
+        return -1;
+    }
+
+    //Message serialization here
+    unsigned int total_serialized=0;
+    //iv serialization (16 Bytes)
+    memcpy(buffer_message,msg.header.initialization_vector,IV_LENGTH);
+    total_serialized +=IV_LENGTH;
+    //opcode serialization (1 Byte)
+    memcpy(buffer_message + total_serialized, &msg.header.opcode, OPCODE_LENGTH);
+    total_serialized +=OPCODE_LENGTH;
+
+    //payload_length serialization (3 Bytes)
+    unsigned char* buffer_payload = (unsigned char*)malloc(PAYLOAD_LENGTH_LEN*sizeof(unsigned char));
+    if(!buffer_payload){
+        cout << "Cannot allocate buffer" << endl;
+        return -1;
+    }
+    for(int len_left=(PAYLOAD_LENGTH_LEN-sizeof(unsigned char))*8; len_left>=0; len_left-=8){
+        unsigned char byte = (unsigned char)(msg.header.payload_length>>len_left);
+        memcpy(buffer_payload, &byte, sizeof(unsigned char));
+    }
+    memcpy(buffer_message+total_serialized, &buffer_payload, PAYLOAD_LENGTH_LEN);
+    total_serialized+=PAYLOAD_LENGTH_LEN;
+    free(buffer_payload);
+
+    //Na, Nb flags serialization (1 Byte each)
+    memcpy(buffer_message+total_serialized, &msg.header.nonceA_present, sizeof(bool));
+    total_serialized += sizeof(bool);
+    memcpy(buffer_message+total_serialized, &msg.header.nonceB_present, sizeof(bool));
+    total_serialized += sizeof(bool);
+
+    //Seq Number serialization(2 Bytes)
+    memcpy(buffer_message+total_serialized, &msg.header.seq_number, sizeof(unsigned short));
+
+    //NonceA, Nonce B serialization (16 Bytes each)
+    if(msg.header.nonceA_present){
+        memcpy(buffer_message+total_serialized, &msg.nonceA, NONCE_LENGTH);
+        total_serialized += NONCE_LENGTH;
+    }
+    if(msg.header.nonceB_present){
+        memcpy(buffer_message+total_serialized, &msg.nonceB, NONCE_LENGTH);
+        total_serialized += NONCE_LENGTH;
+    }
+
+    memcpy(buffer_message+total_serialized, &msg.payload, msg.header.payload_length);
+    total_serialized +=msg.header.payload_length;
+
+    if(msg.hmac){
+        memcpy(buffer_message+total_serialized, &msg.hmac, DIGEST_LEN);
+        total_serialized +=DIGEST_LEN;
+    }
+
+    ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
+    if(ret < total_serialized){
+        cout << "Failed to send message " << msg.header.opcode << msg.header.seq_number <<endl;
+        free(buffer_message);
+        return -1;
+    }
+    free(buffer_message);
+
+    return ret;
 }
 
 int recv_msg_from_server(int socket_id, message *msg) {
     //TODO
 }
 
-int recv_data_from_server(int socket_id, unsigned char *data, int *data_length) {
-    //TODO
-}
+
+
