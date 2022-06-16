@@ -13,6 +13,9 @@ include_directories(Source/Server)
 add_executable(Server Source/Server/server_main.cpp
         Source/Server/server_include.h
         Source/Server/worker.h
+        Source/Server/server_functions.h
         Source/Server/worker_logic_functions.cpp
-        Source/Server/worker_protocol_functions.cpp)
+        Source/Server/worker_protocol_functions.cpp
+        Source/Server/server_conn_functions.cpp
+        )
 add_executable(Client Source/Client/client_main.cpp)

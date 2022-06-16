@@ -2,7 +2,8 @@
 // Created by Francesco del Turco, Mirco Ramo
 //
 
-#include "server_conn_functions.cpp"
+#include "server_include.h"
+#include "server_functions.h"
 
 int main(int argc,char* argv[]){
     cout << "Initialization in progress ..."<<endl;
