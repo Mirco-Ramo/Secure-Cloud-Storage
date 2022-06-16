@@ -7,7 +7,7 @@
 
 #endif //SECURE_CLOUD_STORAGE_SERVER_LIBS_H
 
-/*                    CONSANT MACROS                         */
+/*                    CONSTANT MACROS                         */
 #define MAX_CONNECTIONS 20
 #define LISTENING_PORT 2210
 #define MAX_FILENAME_CHARS 30
@@ -33,4 +33,12 @@
 #include <vector>
 #include <thread>
 #include "pthread.h"
+#include <climits>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
 using namespace std;
