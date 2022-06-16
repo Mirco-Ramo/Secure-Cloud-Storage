@@ -5,11 +5,8 @@
 #include "server_include.h"
 #include "worker.h"
 #include "server_functions.h"
-//#include "worker_protocol_functions.cpp"
-//#include "worker_logic_functions.cpp"
 
 int connectionSocketListener;
-
 
 vector<Worker*> active_workers;
 vector<pthread_t> active_threads;

@@ -27,7 +27,7 @@
  */
 
 struct fixed_header{
-    unsigned char initialization_vector[IV_LENGTH];
+    unsigned char* initialization_vector;
     unsigned char opcode;
     bool nonceA_present;
     bool nonceB_present;
@@ -38,6 +38,7 @@ struct message{
     unsigned char* nonceA;
     unsigned char* nonceB;
     unsigned char* payload;
-    unsigned char hmac[DIGEST_LEN];
+    unsigned int payload_length;
+    unsigned char* hmac;
 };
 

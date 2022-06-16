@@ -17,5 +17,8 @@ add_executable(Server Source/Server/server_main.cpp
         Source/Server/worker_logic_functions.cpp
         Source/Server/worker_protocol_functions.cpp
         Source/Server/server_conn_functions.cpp
-        Source/Server/struct_message.h)
-add_executable(Client Source/Client/client_main.cpp Source/Client/struct_message.h)
+        Source/Server/struct_message.h
+        Source/Server/worker_message_exchange.cpp)
+
+add_executable(Client Source/Client/client_main.cpp
+        Source/Client/struct_message.h)

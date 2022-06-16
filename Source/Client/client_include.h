@@ -11,21 +11,29 @@
 #define SERVER_ADDRESS "127.0.0.1"
 #define SERVER_PORT 2210
 #define MAX_USERNAME_LEN 20
+
 /*              LIBRARIES           */
-#include <signal.h>
+#include <csignal>
 #include "string.h"
 #include "cstring"
 #include <iostream>
 #include <sys/types.h>
-#include <errno.h>
+#include <cerrno>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h>
-#include <time.h>
+#include <ctime>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <climits>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
 
 using namespace std;

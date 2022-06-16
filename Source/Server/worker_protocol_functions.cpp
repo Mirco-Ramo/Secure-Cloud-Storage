@@ -5,6 +5,15 @@
 #include "server_include.h"
 #include "worker.h"
 
+unsigned char* generate_random_nonce(){
+    //TODO
+    return NULL;
+}
+
+unsigned char* Worker::initialize_iv(){
+    //TODO
+    return NULL;
+}
 
 bool Worker::check_username(const string& passed_username){
     char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-";
