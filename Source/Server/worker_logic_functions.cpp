@@ -23,8 +23,8 @@ void* Worker::handle_commands() {
         cout<<"Listening for requests"<<endl;
         message* m = new message();
         int ret = this->recv_msg_from_client(this->socket_id, m, false);
-        cout<<"Return value was"<<ret<<endl;
-        cout<<"Payload length is"<<m->header.payload_length<<endl;
+        cout<<"Return value was: "<<ret<<endl;
+        cout<<"Payload length is: "<<m->header.payload_length<<endl;
 
         string payload = (const char*)m->payload;
         cout<<"You wrote: "<<payload<<endl;

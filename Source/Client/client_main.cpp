@@ -30,8 +30,8 @@ int main(int argc, char** argv) {
         exit(-1);
     }
 
-    client_socket = connect_to_server(&server_addr);    //collateral effect: server_addr initialization
-    if (client_socket < 0)
+    ret = connect_to_server(&server_addr, &client_socket);    //collateral effect: server_addr initialization
+    if (ret < 0)
         exit(-2);
 
     //TODO begin_session()
@@ -59,7 +59,9 @@ int main(int argc, char** argv) {
         memset(iv_buf, 0, IV_LENGTH);
         m = build_message(iv_buf, opcode, command.size()+1, (unsigned char *)(command.c_str()), false);
         cout<<"Sending new msg"<<endl;
-        send_msg_to_server(client_socket, m);
+        send_msg_to_server(client_socket, m, false);
+        if(command.size()>30)
+            logout_request=true;
     }
 
     close(client_socket);

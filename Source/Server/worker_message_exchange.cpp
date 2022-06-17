@@ -24,7 +24,7 @@ message* Worker::build_message(unsigned char* iv, unsigned char opcode,
 }
 
 
-int Worker::send_msg_to_client(int socket_id, message msg){
+int Worker::send_msg_to_client(int socket_id, message msg, bool hmac){
     int ret;
     unsigned char* buffer_message;
 
@@ -33,7 +33,7 @@ int Worker::send_msg_to_client(int socket_id, message msg){
         return -1;
     }
 
-    unsigned int total_len = FIXED_HEADER_LENGTH + msg.header.payload_length + (msg.hmac? DIGEST_LEN : 0);
+    unsigned int total_len = FIXED_HEADER_LENGTH + msg.header.payload_length + (hmac? DIGEST_LEN : 0);
 
     if (total_len > UINT_MAX/sizeof(unsigned char)) {
         cout << "Worker for: " << this->username << ". Message size too long, cannot allocate buffer" << endl;
@@ -71,7 +71,7 @@ int Worker::send_msg_to_client(int socket_id, message msg){
     memcpy(buffer_message+total_serialized, msg.payload, msg.header.payload_length);
     total_serialized +=msg.header.payload_length;
 
-    if(msg.hmac){
+    if(hmac){
         memcpy(buffer_message+total_serialized, msg.hmac, DIGEST_LEN);
         total_serialized +=DIGEST_LEN;
     }
@@ -103,9 +103,7 @@ int Worker::recv_msg_from_client(int socket_id, message *msg, bool hmac) {
     }
 
     // receive header
-    cout<<"I write the instruction immediately before"<<endl;
     ret = recv(socket_id,(void*)buffer_message, FIXED_HEADER_LENGTH,0);
-    cout<<"But not the one after"<<endl;
     if(ret <= 0){
         free(buffer_message);
         cout << "Worker for: " << this->username << ". Cannot receive data from client" << endl;
@@ -126,17 +124,18 @@ int Worker::recv_msg_from_client(int socket_id, message *msg, bool hmac) {
 
     unsigned int read_so_far = IV_LENGTH + OPCODE_LENGTH;
     unsigned int payload_length=0;
-    unsigned char* p = (unsigned char*)malloc(sizeof(unsigned char));
-    if(!p){
-        free(buffer_message);
-        cout << "Worker for: " << this->username << ". Cannot allocate buffer to receive message" << endl;
-        return -1;
-    }
+    unsigned char p;
+
     for(int i=0; i<PAYLOAD_LENGTH_LEN; i+=sizeof(unsigned char)){
-        memcpy(p, buffer_message+read_so_far+i, sizeof(unsigned char));
-        payload_length += (payload_length<<8) + (unsigned int)(*p);
+        p = *(buffer_message+read_so_far+i);
+        printf("%d\t", p);
+        payload_length = (payload_length<<8) | p;
+        printf("%d\n", payload_length);
     }
-    free(p);
+    payload_length = (payload_length<<8);
+    payload_length = ntohl(payload_length);
+
+    cout<<"Payload length should be: "<<payload_length<<endl;
 
     //check payload length
     if(payload_length>MAX_PAYLOAD_LENGTH){

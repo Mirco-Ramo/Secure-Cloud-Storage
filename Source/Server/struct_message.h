@@ -11,14 +11,14 @@
 
 #define CIPHER              EVP_aes_128_cbc()
 #define IV_LENGTH           16 //(unsigned int)EVP_CIPHER_iv_length(CIPHER)
-#define OPCODE_LENGTH       sizeof(unsigned char)
-#define MAX_PAYLOAD_LENGTH  UINT_MAX
+#define OPCODE_LENGTH       1
+#define MAX_PAYLOAD_LENGTH  256*256*256-1 //3 Byte
 #define KEY_LEN             EVP_CIPHER_key_length(CIPHER)
 #define SHA_256             EVP_sha256()
 #define DIGEST_LEN          32 //(unsigned int)EVP_MD_size(SHA_256)
 #define HMAC_KEY_LEN        32
 #define NONCE_LENGTH        IV_LENGTH
-#define FIXED_HEADER_LENGTH 24
+#define FIXED_HEADER_LENGTH 20
 #define PAYLOAD_LENGTH_LEN  3
 
 /*      OPCODES     */
@@ -53,7 +53,7 @@
 
 
 struct fixed_header{
-    unsigned char* initialization_vector;
+    unsigned char initialization_vector[IV_LENGTH];
     unsigned char opcode;
     unsigned int payload_length;
 };
@@ -61,6 +61,6 @@ struct fixed_header{
 struct message{
     fixed_header header;
     unsigned char* payload;
-    unsigned char* hmac;
+    unsigned char hmac[DIGEST_LEN];
 };
 

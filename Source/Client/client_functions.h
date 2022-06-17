@@ -10,7 +10,7 @@
 #include "struct_message.h"
 
 /*              CONNECTION FUNCTIONS            */
-int connect_to_server(sockaddr_in* server_addr);
+int connect_to_server(sockaddr_in* server_addr, int* client_socket);
 void shutdown(int received_signal);
 
 
@@ -19,7 +19,7 @@ message* build_message(unsigned char* iv, unsigned char opcode,
                        unsigned int payload_length,
                        unsigned char* payload, bool hmac);
 
-int send_msg_to_server(int socket_id, message* msg);
+int send_msg_to_server(int socket_id, message* msg, bool hmac);
 int recv_msg_from_server(int socket_id, message *msg, bool hmac);
 
 
