@@ -33,7 +33,7 @@ public:
     static bool check_file_name(const string& file_name);
 
     /*      MESSAGE EXCHANGE        */
-    message* build_message(unsigned char*, unsigned char, unsigned int, unsigned char*, unsigned char*, unsigned short, unsigned char*, bool);
+    message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
     int send_msg_to_client(int socket_id, message msg);
     int recv_msg_from_client(int socket_id, message* msg);
 

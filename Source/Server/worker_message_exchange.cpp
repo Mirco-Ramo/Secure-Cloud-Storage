@@ -7,9 +7,7 @@
 
 
 message* Worker::build_message(unsigned char* iv, unsigned char opcode,
-                       unsigned int payload_length, unsigned char* na,
-                       unsigned char* nb, unsigned short seq_number,
-                       unsigned char* payload, bool hmac){
+                       unsigned int payload_length, unsigned char* payload, bool hmac){
 
     fixed_header h{};
     memcpy(h.initialization_vector, iv, IV_LENGTH);
@@ -17,21 +15,7 @@ message* Worker::build_message(unsigned char* iv, unsigned char opcode,
     h.payload_length = payload_length;
     message m{};
     m.header = h;
-    if(na){
-        m.header.nonceA_present=true;
-        m.nonceA = na;
-    }
-    else
-        m.header.nonceA_present=false;
-    if(nb){
-        m.header.nonceB_present=true;
-        m.nonceB = nb;
-    }
-    else
-        m.header.nonceB_present=false;
-    m.header.seq_number = seq_number;
-    m.payload=payload;
-
+    m.payload = payload;
     if(hmac)
         //compute hmac
         int a=0;
