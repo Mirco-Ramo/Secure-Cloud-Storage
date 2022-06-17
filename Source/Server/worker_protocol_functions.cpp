@@ -25,7 +25,12 @@ bool Worker::check_username(const string& passed_username){
 }
 
 bool Worker::check_file_name(const string& file_name){
-    return Worker::check_username(file_name);
+    char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_.-";
+
+    if(strspn(file_name.c_str(),ok_chars) < strlen(file_name.c_str())){
+        return false;
+    }
+    return true;
 }
 
 bool Worker::establish_session() {

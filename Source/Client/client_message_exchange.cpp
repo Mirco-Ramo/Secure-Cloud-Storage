@@ -42,8 +42,7 @@ message* build_message(unsigned char* iv, unsigned char opcode,
 int send_msg_to_server(int socket_id, message msg){
     int ret;
     unsigned char* buffer_message;
-    unsigned int total_len = FIXED_HEADER_LENGTH + (msg.header.nonceA_present ? NONCE_LENGTH : 0) +
-                             (msg.header.nonceB_present ? NONCE_LENGTH : 0) + msg.header.payload_length + (msg.hmac? DIGEST_LEN : 0);
+    unsigned int total_len = FIXED_HEADER_LENGTH + msg.header.payload_length + (msg.hmac? DIGEST_LEN : 0);
     unsigned int len = htons(total_len);
 
     //send to client how many bytes to receive
@@ -86,25 +85,6 @@ int send_msg_to_server(int socket_id, message msg){
     total_serialized+=PAYLOAD_LENGTH_LEN;
     free(buffer_payload);
 
-    //Na, Nb flags serialization (1 Byte each)
-    memcpy(buffer_message+total_serialized, &msg.header.nonceA_present, sizeof(bool));
-    total_serialized += sizeof(bool);
-    memcpy(buffer_message+total_serialized, &msg.header.nonceB_present, sizeof(bool));
-    total_serialized += sizeof(bool);
-
-    //Seq Number serialization(2 Bytes)
-    memcpy(buffer_message+total_serialized, &msg.header.seq_number, sizeof(unsigned short));
-
-    //NonceA, Nonce B serialization (16 Bytes each)
-    if(msg.header.nonceA_present){
-        memcpy(buffer_message+total_serialized, &msg.nonceA, NONCE_LENGTH);
-        total_serialized += NONCE_LENGTH;
-    }
-    if(msg.header.nonceB_present){
-        memcpy(buffer_message+total_serialized, &msg.nonceB, NONCE_LENGTH);
-        total_serialized += NONCE_LENGTH;
-    }
-
     memcpy(buffer_message+total_serialized, &msg.payload, msg.header.payload_length);
     total_serialized +=msg.header.payload_length;
 
@@ -115,7 +95,7 @@ int send_msg_to_server(int socket_id, message msg){
 
     ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
     if(ret < total_serialized){
-        cout << "Failed to send message " << msg.header.opcode << msg.header.seq_number <<endl;
+        cout << "Failed to send message " << msg.header.opcode<<endl;
         free(buffer_message);
         return -1;
     }

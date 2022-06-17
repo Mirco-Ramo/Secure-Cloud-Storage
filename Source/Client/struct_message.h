@@ -51,19 +51,15 @@
 #define MISSING_FILE        22
 #define INVALID_LIST        23
 
+
 struct fixed_header{
     unsigned char* initialization_vector;
     unsigned char opcode;
     unsigned int payload_length;
-    bool nonceA_present;
-    bool nonceB_present;
-    unsigned short seq_number;
 };
 
 struct message{
     fixed_header header;
-    unsigned char* nonceA;
-    unsigned char* nonceB;
     unsigned char* payload;
     unsigned char* hmac;
 };

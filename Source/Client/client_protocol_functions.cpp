@@ -13,10 +13,11 @@ bool check_username(const string& username){
 }
 
 bool check_file_name(const string& file_name){
-    return check_username(file_name);
-}
+    char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-.";
 
-void handle_list(){
-
+    if(strspn(file_name.c_str(),ok_chars) < strlen(file_name.c_str())){
+        return false;
+    }
+    return true;
 }
 
