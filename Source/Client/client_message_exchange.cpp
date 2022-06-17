@@ -5,16 +5,16 @@
 #include "client_include.h"
 #include "struct_message.h"
 
-message build_message(unsigned char* iv, unsigned char opcode,
+message* build_message(unsigned char* iv, unsigned char opcode,
                               unsigned int payload_length, unsigned char* payload, bool hmac){
 
     fixed_header h{};
     memcpy(h.initialization_vector, iv, IV_LENGTH);
     h.opcode = opcode;
     h.payload_length = payload_length;
-    message m{};
-    m.header = h;
-    m.payload = payload;
+    message* m = new message();
+    m->header = h;
+    m->payload = payload;
     if(hmac)
         //compute hmac
         int a=0;
@@ -23,16 +23,16 @@ message build_message(unsigned char* iv, unsigned char opcode,
 }
 
 
-int send_msg_to_server(int socket_id, message msg){
+int send_msg_to_server(int socket_id, message* msg){
     int ret;
     unsigned char* buffer_message;
 
-    if(msg.header.payload_length>MAX_PAYLOAD_LENGTH){
+    if(msg->header.payload_length>MAX_PAYLOAD_LENGTH){
         cout << "Payload is over maximum allowed value" << endl;
         return -1;
     }
 
-    unsigned int total_len = FIXED_HEADER_LENGTH + msg.header.payload_length + (msg.hmac? DIGEST_LEN : 0);
+    unsigned int total_len = FIXED_HEADER_LENGTH + msg->header.payload_length + (msg->hmac? DIGEST_LEN : 0);
 
     if (total_len > UINT_MAX/sizeof(unsigned char)) {
         cout << "Message size too long, cannot allocate buffer" << endl;
@@ -47,10 +47,10 @@ int send_msg_to_server(int socket_id, message msg){
     //Message serialization here
     unsigned int total_serialized=0;
     //iv serialization (16 Bytes)
-    memcpy(buffer_message,msg.header.initialization_vector,IV_LENGTH);
+    memcpy(buffer_message,msg->header.initialization_vector,IV_LENGTH);
     total_serialized +=IV_LENGTH;
     //opcode serialization (1 Byte)
-    memcpy(buffer_message + total_serialized, &msg.header.opcode, OPCODE_LENGTH);
+    memcpy(buffer_message + total_serialized, &msg->header.opcode, OPCODE_LENGTH);
     total_serialized +=OPCODE_LENGTH;
 
     //payload_length serialization (3 Bytes)
@@ -60,24 +60,24 @@ int send_msg_to_server(int socket_id, message msg){
         return -1;
     }
     for(int len_left=(PAYLOAD_LENGTH_LEN-sizeof(unsigned char)); len_left>=0; len_left--){
-        unsigned char byte = (unsigned char)(msg.header.payload_length>>len_left*8);
+        unsigned char byte = (unsigned char)(msg->header.payload_length>>len_left*8);
         memcpy(buffer_payload, &byte, sizeof(unsigned char));
     }
     memcpy(buffer_message+total_serialized, &buffer_payload, PAYLOAD_LENGTH_LEN);
     total_serialized+=PAYLOAD_LENGTH_LEN;
     free(buffer_payload);
 
-    memcpy(buffer_message+total_serialized, msg.payload, msg.header.payload_length);
-    total_serialized +=msg.header.payload_length;
+    memcpy(buffer_message+total_serialized, msg->payload, msg->header.payload_length);
+    total_serialized +=msg->header.payload_length;
 
-    if(msg.hmac){
-        memcpy(buffer_message+total_serialized, msg.hmac, DIGEST_LEN);
+    if(msg->hmac){
+        memcpy(buffer_message+total_serialized, msg->hmac, DIGEST_LEN);
         total_serialized +=DIGEST_LEN;
     }
 
     ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
     if(ret < total_serialized){
-        cout << "Failed to send message " << msg.header.opcode<<endl;
+        cout << "Failed to send message " << msg->header.opcode<<endl;
         free(buffer_message);
         return -1;
     }
@@ -86,7 +86,7 @@ int send_msg_to_server(int socket_id, message msg){
     return ret;
 }
 
-int recv_msg_from_server(int socket_id, message *msg) {
+int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     int ret;
     unsigned char* buffer_message, *buffer_iv;
     fixed_header h{};
@@ -160,6 +160,8 @@ int recv_msg_from_server(int socket_id, message *msg) {
 
     msg->payload = buffer_message;
 
+    if(!hmac)
+        return FIXED_HEADER_LENGTH + payload_length;
 
     unsigned char* buffer_hmac = (unsigned char*)malloc(DIGEST_LEN);
     if(!buffer_hmac){
@@ -169,7 +171,7 @@ int recv_msg_from_server(int socket_id, message *msg) {
     ret = recv(socket_id,(void*)buffer_hmac, DIGEST_LEN, 0);
     if(ret < DIGEST_LEN){
         free(buffer_hmac);
-        cout << "Payload receive failed" << endl;
+        cout << "Hmac receive failed" << endl;
         return ret;
     }
 

@@ -20,12 +20,18 @@ void* Worker::handle_commands_helper(void *context)
 void* Worker::handle_commands() {
     //TODO call key exchange
     while(!this->logout_request){
-        cout<<"Waiting for string: "<<endl;
-        string echo;
-        getline(cin, echo);
-        cout<<echo<<endl;
-        if (echo.length()>10)
+        cout<<"Listening for requests"<<endl;
+        message* m = new message();
+        int ret = this->recv_msg_from_client(this->socket_id, m, false);
+        cout<<"Return value was"<<ret<<endl;
+        cout<<"Payload length is"<<m->header.payload_length<<endl;
+
+        string payload = (const char*)m->payload;
+        cout<<"You wrote: "<<payload<<endl;
+
+        if(m->header.payload_length>10)
             logout_request=true;
+
         //TODO wait for command
 
         /*

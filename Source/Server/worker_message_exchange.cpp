@@ -6,16 +6,16 @@
 #include "worker.h"
 
 
-message Worker::build_message(unsigned char* iv, unsigned char opcode,
+message* Worker::build_message(unsigned char* iv, unsigned char opcode,
                        unsigned int payload_length, unsigned char* payload, bool hmac){
 
     fixed_header h{};
     memcpy(h.initialization_vector, iv, IV_LENGTH);
     h.opcode = opcode;
     h.payload_length = payload_length;
-    message m{};
-    m.header = h;
-    m.payload = payload;
+    message* m = new message();
+    m->header = h;
+    m->payload = payload;
     if(hmac)
         //compute hmac
         int a=0;
@@ -87,7 +87,11 @@ int Worker::send_msg_to_client(int socket_id, message msg){
     return ret;
 }
 
-int Worker::recv_msg_from_client(int socket_id, message *msg) {
+
+
+
+
+int Worker::recv_msg_from_client(int socket_id, message *msg, bool hmac) {
     int ret;
     unsigned char* buffer_message, *buffer_iv;
     fixed_header h{};
@@ -98,9 +102,10 @@ int Worker::recv_msg_from_client(int socket_id, message *msg) {
         return -1;
     }
 
-
     // receive header
+    cout<<"I write the instruction immediately before"<<endl;
     ret = recv(socket_id,(void*)buffer_message, FIXED_HEADER_LENGTH,0);
+    cout<<"But not the one after"<<endl;
     if(ret <= 0){
         free(buffer_message);
         cout << "Worker for: " << this->username << ". Cannot receive data from client" << endl;
@@ -111,6 +116,7 @@ int Worker::recv_msg_from_client(int socket_id, message *msg) {
         cout << "Worker for: " << this->username << ". Failed to receive data from client" << endl;
         return ret;
     }
+    cout<<"I received the header"<<endl;
 
     //deserialize header
     buffer_iv = (unsigned char*)malloc(IV_LENGTH);
@@ -161,6 +167,8 @@ int Worker::recv_msg_from_client(int socket_id, message *msg) {
 
     msg->payload = buffer_message;
 
+    if(!hmac)
+        return FIXED_HEADER_LENGTH + ret;
 
     unsigned char* buffer_hmac = (unsigned char*)malloc(DIGEST_LEN);
     if(!buffer_hmac){
@@ -170,7 +178,7 @@ int Worker::recv_msg_from_client(int socket_id, message *msg) {
     ret = recv(socket_id,(void*)buffer_hmac, DIGEST_LEN, 0);
     if(ret < DIGEST_LEN){
         free(buffer_hmac);
-        cout << "Worker for: " << this->username << ". Payload receive failed" << endl;
+        cout << "Worker for: " << this->username << ". Hmac receive failed" << endl;
         return ret;
     }
 

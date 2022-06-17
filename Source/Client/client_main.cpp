@@ -53,7 +53,13 @@ int main(int argc, char** argv) {
         }
         //TODO consider if doing command and then request elements later for simplicity
         //TODO logout_request = accept_commands()
-        logout_request=true;
+        message* m;
+        unsigned char* iv_buf = (unsigned char*)malloc(IV_LENGTH);
+        unsigned char opcode='a';
+        memset(iv_buf, 0, IV_LENGTH);
+        m = build_message(iv_buf, opcode, command.size()+1, (unsigned char *)(command.c_str()), false);
+        cout<<"Sending new msg"<<endl;
+        send_msg_to_server(client_socket, m);
     }
 
     close(client_socket);

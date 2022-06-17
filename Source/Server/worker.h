@@ -34,9 +34,9 @@ public:
     static bool check_file_name(const string& file_name);
 
     /*      MESSAGE EXCHANGE        */
-    message build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
+    message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
     int send_msg_to_client(int socket_id, message msg);
-    int recv_msg_from_client(int socket_id, message* msg);
+    int recv_msg_from_client(int socket_id, message* msg, bool hmac);
 
     /*      LOGIC COMMANDS          */
     void* handle_commands();
