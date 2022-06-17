@@ -6,8 +6,7 @@
 #include "struct_message.h"
 
 message* build_message(unsigned char* iv, unsigned char opcode,
-                               unsigned int payload_length, unsigned char* na,
-                               unsigned char* nb, unsigned short seq_number,
+                               unsigned int payload_length,
                                unsigned char* payload, bool hmac){
 
     fixed_header h{};
@@ -16,19 +15,6 @@ message* build_message(unsigned char* iv, unsigned char opcode,
     h.payload_length = payload_length;
     message m{};
     m.header = h;
-    if(na){
-        m.header.nonceA_present=true;
-        m.nonceA = na;
-    }
-    else
-        m.header.nonceA_present=false;
-    if(nb){
-        m.header.nonceB_present=true;
-        m.nonceB = nb;
-    }
-    else
-        m.header.nonceB_present=false;
-    m.header.seq_number = seq_number;
     m.payload=payload;
 
     if(hmac)
