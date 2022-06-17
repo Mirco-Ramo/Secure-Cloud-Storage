@@ -17,8 +17,7 @@
 #define SHA_256             EVP_sha256()
 #define DIGEST_LEN          32 //(unsigned int)EVP_MD_size(SHA_256)
 #define HMAC_KEY_LEN        32
-#define NONCE_LENGTH        IV_LENGTH
-#define FIXED_HEADER_LENGTH 24
+#define FIXED_HEADER_LENGTH 20
 #define PAYLOAD_LENGTH_LEN  3
 
 /*      OPCODES     */
@@ -53,7 +52,7 @@
 
 
 struct fixed_header{
-    unsigned char* initialization_vector;
+    unsigned char initialization_vector[IV_LENGTH];
     unsigned char opcode;
     unsigned int payload_length;
 };
@@ -61,6 +60,6 @@ struct fixed_header{
 struct message{
     fixed_header header;
     unsigned char* payload;
-    unsigned char* hmac;
+    unsigned char hmac[DIGEST_LEN];
 };
 

@@ -15,7 +15,7 @@ void shutdown(int received_signal);
 
 
 /*              MESSAGE EXCHANGE                */
-message* build_message(unsigned char* iv, unsigned char opcode,
+message build_message(unsigned char* iv, unsigned char opcode,
                        unsigned int payload_length,
                        unsigned char* payload, bool hmac);
 
@@ -26,4 +26,7 @@ int recv_msg_from_server(int socket_id, message *msg);
 /*              SECURE CODING                      */
 bool check_username(const string& username);
 bool check_file_name(const string& file_name);
+
+
+/*              LOGIC FUNCTIONS                    */
 void handle_list();

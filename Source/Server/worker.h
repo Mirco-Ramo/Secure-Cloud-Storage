@@ -14,12 +14,13 @@ class Worker {
     //struct sockaddr_in client_addr;   ?
     string username;
     bool logout_request;
-    unsigned char iv[IV_LENGTH];
+    long worker_counter;
+    long client_counter;
     //shared_key;
     //shared_mac;
     //user_nonce; ?
     //my_nonce;   ?
-    //received_Command;
+    //received_Command
 public:
     /*      CONSTRUCTOR         */
     Worker(int socket_id);
@@ -33,12 +34,12 @@ public:
     static bool check_file_name(const string& file_name);
 
     /*      MESSAGE EXCHANGE        */
-    message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
+    message build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
     int send_msg_to_client(int socket_id, message msg);
     int recv_msg_from_client(int socket_id, message* msg);
 
     /*      LOGIC COMMANDS          */
-    void* handle_commands(void);
+    void* handle_commands();
     static void  *handle_commands_helper(void* context);
     void handle_download();
     void handle_upload();
@@ -46,6 +47,8 @@ public:
     void handle_rename();
     void handle_delete();
     void handle_logout();
+
+    /*          DESTRUCTORS         */
     ~Worker(); //destroy every sensible information, like exchanged keys
 
 };

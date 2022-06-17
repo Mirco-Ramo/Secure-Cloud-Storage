@@ -41,4 +41,5 @@
 #include <openssl/ssl.h>
 #include <openssl/crypto.h>
 #include <openssl/x509.h>
+#include <algorithm>
 using namespace std;

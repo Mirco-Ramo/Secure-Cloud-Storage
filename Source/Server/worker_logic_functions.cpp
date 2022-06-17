@@ -6,10 +6,10 @@
 #include "worker.h"
 
 Worker::Worker(int socket_id) {
-    signal(SIGTERM, SIG_IGN);
-
     this->socket_id = socket_id;
     this->logout_request = false;
+    this->worker_counter = 0;
+    this->client_counter = 0;
 }
 
 void* Worker::handle_commands_helper(void *context)
