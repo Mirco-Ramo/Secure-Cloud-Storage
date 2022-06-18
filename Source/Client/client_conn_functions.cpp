@@ -30,4 +30,5 @@ int connect_to_server(sockaddr_in* server_addr, int* client_socket){
 void shutdown(int received_signal){
     //TODO disconnect()
     //TODO clean_all(resources);
+    clean_counters();
 }

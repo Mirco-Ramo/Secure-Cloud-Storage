@@ -19,14 +19,14 @@ int main(int argc, char** argv) {
         cout << "Please, type your username (maximum " << MAX_USERNAME_LEN << " characters): " << endl;
         getline(cin, username);
         if (!cin) {
-            cerr << "Error during input\n";
+            cerr << "Error during input"<<endl;
             exit(-1);
         }
     } while (username.size() > MAX_USERNAME_LEN);
 
     int ret = check_username(username);
     if (!ret) {
-        cerr << "Invalid username\n";
+        cerr << "Invalid username. Only alphanumeric characters, dashes and underscores allowed"<<endl;
         exit(-1);
     }
 
@@ -34,7 +34,10 @@ int main(int argc, char** argv) {
     if (ret < 0)
         exit(-2);
 
-    //TODO begin_session()
+    if (!begin_session(client_socket)){
+        cerr<<"Cannot begin session with server"<<endl;
+        exit(-3);
+    }
 
     cout<<HELP_MESSAGE<<endl;
     cout<<PROMPT << endl << PROMPT;
@@ -43,16 +46,43 @@ int main(int argc, char** argv) {
     while(!logout_request) {
         cout << "Please, enter a command (type HELP to see a list of commands available): " << endl << PROMPT;
         string command;
-        cin >> command;
-        //TODO sanitize all the commands before if-else
-        if(command.compare("HELP") == 0){
+        getline(cin, command);
+        if (!cin) {
+            cerr << "Error during command input"<<endl;
+            exit(-1);
+        }
+        if(!command_ok(command)){
+            cerr << "Please input valid commands. Only uppercase characters allowed."<<endl;
+            continue;
+        }
+        if(command == "HELP"){
             cout << HELP_MESSAGE << endl << PROMPT;
         }
-        else if(command.compare("LIST") == 0){
+        else if(command == "LIST"){
             handle_list();
         }
+        else if(command == "DOWNLOAD"){
+            handle_download();
+        }
+        else if(command == "UPLOAD"){
+            handle_upload();
+        }
+        else if(command == "RENAME"){
+            handle_rename();
+        }
+        else if(command == "DELETE"){
+            handle_delete();
+        }
+        else if(command == "LOGOUT"){
+            handle_logout();
+            logout_request = true;
+        }
+        else{
+            cerr << "Invalid command."<<endl;
+            continue;
+        }
         //TODO consider if doing command and then request elements later for simplicity
-        //TODO logout_request = accept_commands()
+        /*
         message* m;
         unsigned char* iv_buf = (unsigned char*)malloc(IV_LENGTH*sizeof(unsigned char));
         unsigned char opcode='a';
@@ -73,12 +103,13 @@ int main(int argc, char** argv) {
         string payload = (const char*)m->payload;
         cout<<"I received: "<<payload<<endl;
         free(m->payload);
+         */
     }
 
     close(client_socket);
 
     //TODO disconnect();
-    //TODO clean_all(resources);
+    shutdown(0);
 
     return 0;
 }

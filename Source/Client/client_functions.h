@@ -12,6 +12,7 @@
 /*              CONNECTION FUNCTIONS            */
 int connect_to_server(sockaddr_in* server_addr, int* client_socket);
 void shutdown(int received_signal);
+bool begin_session(int socket_id);
 
 
 /*              MESSAGE EXCHANGE                */
@@ -26,7 +27,17 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac);
 /*              SECURE CODING                      */
 bool check_username(const string& username);
 bool check_file_name(const string& file_name);
+bool command_ok(const string& command);
 
 
 /*              LOGIC FUNCTIONS                    */
+void handle_download();
+void handle_upload();
 void handle_list();
+void handle_rename();
+void handle_delete();
+void handle_logout();
+
+
+/*              PROTOCOL AND CLEAN FUNCTIONS        */
+void clean_counters();

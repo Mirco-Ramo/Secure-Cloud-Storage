@@ -6,3 +6,19 @@
 void handle_list(){
 
 }
+
+void handle_download(){
+
+}
+void handle_upload(){
+
+}
+void handle_rename(){
+
+}
+void handle_delete(){
+
+}
+void handle_logout(){
+
+}

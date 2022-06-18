@@ -20,12 +20,11 @@
                      "Type one of the following commands to start:\n"                                  \
                      PROMPT "HELP: print this message\n"                                                                                                                             \
                      PROMPT "LIST: list all uploaded files\n"                                           \
-                     PROMPT "DOWNLOAD <filename>: downloads requested file\n" \
-                     PROMPT "UPLOAD <filename>: loads requested file into your cloud storage space\n"  \
-                     PROMPT "RENAME <old_filename> <new_filename>: renames a file in the cloud\n"       \
-                     PROMPT "DELETE <filename>: removes a file from the cloud\n"       \
+                     PROMPT "DOWNLOAD: downloads requested file\n" \
+                     PROMPT "UPLOAD: loads requested file into your cloud storage space\n"  \
+                     PROMPT "RENAME: renames a file in the cloud\n"       \
+                     PROMPT "DELETE: removes a file from the cloud\n"       \
                      PROMPT "LOGOUT: closes connection with server and exits the service\n" \
-                     "Enter your commands here\n\n"
 
 /*              LIBRARIES           */
 #include <csignal>
