@@ -61,10 +61,18 @@ int main(int argc, char** argv) {
             printf("%x", *(iv_buf+i));
         }
         m = build_message(iv_buf, opcode, command.size()+1, (unsigned char *)(command.c_str()), false);
-        cout<<"Sending new msg"<<endl;
         send_msg_to_server(client_socket, m, false);
         if(command.size()>30)
             logout_request=true;
+
+        m = new message();
+        int ret = recv_msg_from_server(client_socket, m, false);
+        cout<<"Return value was: "<<ret<<endl;
+        cout<<"Payload length is: "<<m->header.payload_length<<endl;
+
+        string payload = (const char*)m->payload;
+        cout<<"I received: "<<payload<<endl;
+        free(m->payload);
     }
 
     close(client_socket);

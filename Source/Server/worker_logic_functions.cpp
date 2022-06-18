@@ -29,8 +29,19 @@ void* Worker::handle_commands() {
         string payload = (const char*)m->payload;
         cout<<"You wrote: "<<payload<<endl;
 
-        if(m->header.payload_length>10)
+        if(m->header.payload_length>30)
             logout_request=true;
+
+        unsigned char* iv_buf = (unsigned char*)malloc(IV_LENGTH*sizeof(unsigned char));
+        unsigned char opcode='d';
+        for(int i=0; i<IV_LENGTH*sizeof(unsigned char); i+=sizeof(unsigned char)){
+            *(iv_buf+i)=(unsigned char)(opcode+i);
+        }
+        free(m->payload);
+        char* hello_msg = "Hello to you, my kind client!\n";
+        cout<<"I send you: "<<hello_msg<<endl;
+        m = build_message(iv_buf, opcode, strlen(hello_msg)+1, (unsigned char *)(hello_msg), false);
+        send_msg_to_client(this->socket_id, m, false);
 
         //TODO wait for command
 
