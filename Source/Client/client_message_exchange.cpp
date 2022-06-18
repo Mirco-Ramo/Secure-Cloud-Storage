@@ -49,11 +49,10 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
     //iv serialization (16 Bytes)
     memcpy(buffer_message,msg->header.initialization_vector,IV_LENGTH);
     total_serialized +=IV_LENGTH;
-    //printf("%x", buffer_message);
+
     //opcode serialization (1 Byte)
     memcpy(buffer_message + total_serialized, &msg->header.opcode, OPCODE_LENGTH);
     total_serialized +=OPCODE_LENGTH;
-
     //payload_length serialization (3 Bytes)
     unsigned char* buffer_payload = (unsigned char*)malloc(PAYLOAD_LENGTH_LEN*sizeof(unsigned char));
     if(!buffer_payload){
@@ -62,9 +61,7 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
     }
     for(int len_left=(PAYLOAD_LENGTH_LEN-sizeof(unsigned char)); len_left>=0; len_left--){
         unsigned int a = (msg->header.payload_length>>(len_left*8));
-        printf("%d\t", a);
         unsigned char byte = (unsigned char)(a);
-        printf("%d\n", byte);
         memcpy(buffer_payload, &byte, sizeof(unsigned char));
     }
     memcpy(buffer_message+total_serialized, buffer_payload, PAYLOAD_LENGTH_LEN);
@@ -73,7 +70,6 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
 
     memcpy(buffer_message+total_serialized, msg->payload, msg->header.payload_length);
     total_serialized +=msg->header.payload_length;
-    printf("%s", buffer_message+OPCODE_LENGTH+PAYLOAD_LENGTH_LEN+IV_LENGTH);
     if(hmac){
         memcpy(buffer_message+total_serialized, msg->hmac, DIGEST_LEN);
         total_serialized +=DIGEST_LEN;
@@ -89,6 +85,8 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
     return ret;
 }
 
+
+
 int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     int ret;
     unsigned char* buffer_message, *buffer_iv;
@@ -99,7 +97,6 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
         cout << "Cannot allocate buffer to receive message" << endl;
         return -1;
     }
-
 
     // receive header
     ret = recv(socket_id,(void*)buffer_message, FIXED_HEADER_LENGTH,0);
@@ -115,24 +112,19 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     }
 
     //deserialize header
-    buffer_iv = (unsigned char*)malloc(IV_LENGTH);
-    memcpy(h.initialization_vector, buffer_message, IV_LENGTH);
-    free(buffer_iv);
+    memcpy(h.initialization_vector, buffer_message, IV_LENGTH*sizeof(unsigned char));
     memcpy(&h.opcode, buffer_message+IV_LENGTH, OPCODE_LENGTH);
 
     unsigned int read_so_far = IV_LENGTH + OPCODE_LENGTH;
     unsigned int payload_length=0;
-    unsigned char* p = (unsigned char*)malloc(sizeof(unsigned char));
-    if(!p){
-        free(buffer_message);
-        cout << "Cannot allocate buffer to receive message" << endl;
-        return -1;
-    }
+    unsigned char p;
+
     for(int i=0; i<PAYLOAD_LENGTH_LEN; i+=sizeof(unsigned char)){
-        memcpy(p, buffer_message+read_so_far+i, sizeof(unsigned char));
-        payload_length += (payload_length<<8) + (unsigned int)(*p);
+        p = *(buffer_message+read_so_far+i);
+        payload_length = (payload_length<<8) | p;
     }
-    free(p);
+    payload_length = (payload_length<<8);
+    payload_length = ntohl(payload_length);
 
     //check payload length
     if(payload_length>MAX_PAYLOAD_LENGTH){
@@ -164,7 +156,7 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     msg->payload = buffer_message;
 
     if(!hmac)
-        return FIXED_HEADER_LENGTH + payload_length;
+        return FIXED_HEADER_LENGTH + ret;
 
     unsigned char* buffer_hmac = (unsigned char*)malloc(DIGEST_LEN);
     if(!buffer_hmac){

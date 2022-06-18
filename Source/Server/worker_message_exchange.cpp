@@ -24,61 +24,60 @@ message* Worker::build_message(unsigned char* iv, unsigned char opcode,
 }
 
 
-int Worker::send_msg_to_client(int socket_id, message msg, bool hmac){
+int Worker::send_msg_to_client(int socket_id, message* msg, bool hmac){
     int ret;
     unsigned char* buffer_message;
 
-    if(msg.header.payload_length>MAX_PAYLOAD_LENGTH){
-        cout << "Worker for: " << this->username << ". Payload is over maximum allowed value" << endl;
+    if(msg->header.payload_length>MAX_PAYLOAD_LENGTH){
+        cout << "Worker for: " << this->username <<". Payload is over maximum allowed value" << endl;
         return -1;
     }
 
-    unsigned int total_len = FIXED_HEADER_LENGTH + msg.header.payload_length + (hmac? DIGEST_LEN : 0);
+    unsigned int total_len = FIXED_HEADER_LENGTH + msg->header.payload_length + (hmac? DIGEST_LEN : 0);
 
     if (total_len > UINT_MAX/sizeof(unsigned char)) {
-        cout << "Worker for: " << this->username << ". Message size too long, cannot allocate buffer" << endl;
+        cout << "Worker for: " << this->username <<". Message size too long, cannot allocate buffer" << endl;
         return -1;
     }
     buffer_message = (unsigned char*)malloc(sizeof(unsigned char) * total_len);
     if(!buffer_message){
-        cout << "Worker for: " << this->username << ". Cannot allocate buffer to send message" << endl;
+        cout << "Worker for: " << this->username <<". Cannot allocate buffer to send message" << endl;
         return -1;
     }
 
     //Message serialization here
     unsigned int total_serialized=0;
     //iv serialization (16 Bytes)
-    memcpy(buffer_message,msg.header.initialization_vector,IV_LENGTH);
+    memcpy(buffer_message,msg->header.initialization_vector,IV_LENGTH);
     total_serialized +=IV_LENGTH;
-    //opcode serialization (1 Byte)
-    memcpy(buffer_message + total_serialized, &msg.header.opcode, OPCODE_LENGTH);
-    total_serialized +=OPCODE_LENGTH;
 
+    //opcode serialization (1 Byte)
+    memcpy(buffer_message + total_serialized, &msg->header.opcode, OPCODE_LENGTH);
+    total_serialized +=OPCODE_LENGTH;
     //payload_length serialization (3 Bytes)
     unsigned char* buffer_payload = (unsigned char*)malloc(PAYLOAD_LENGTH_LEN*sizeof(unsigned char));
     if(!buffer_payload){
-        cout << "Worker for: " << this->username << ". Cannot allocate buffer" << endl;
+        cout << "Worker for: " << this->username <<". Cannot allocate buffer" << endl;
         return -1;
     }
     for(int len_left=(PAYLOAD_LENGTH_LEN-sizeof(unsigned char)); len_left>=0; len_left--){
-        unsigned char byte = (unsigned char)(msg.header.payload_length>>len_left*8);
+        unsigned int a = (msg->header.payload_length>>(len_left*8));
+        unsigned char byte = (unsigned char)(a);
         memcpy(buffer_payload, &byte, sizeof(unsigned char));
     }
-    memcpy(buffer_message+total_serialized, &buffer_payload, PAYLOAD_LENGTH_LEN);
+    memcpy(buffer_message+total_serialized, buffer_payload, PAYLOAD_LENGTH_LEN);
     total_serialized+=PAYLOAD_LENGTH_LEN;
     free(buffer_payload);
 
-    memcpy(buffer_message+total_serialized, msg.payload, msg.header.payload_length);
-    total_serialized +=msg.header.payload_length;
-
+    memcpy(buffer_message+total_serialized, msg->payload, msg->header.payload_length);
+    total_serialized +=msg->header.payload_length;
     if(hmac){
-        memcpy(buffer_message+total_serialized, msg.hmac, DIGEST_LEN);
+        memcpy(buffer_message+total_serialized, msg->hmac, DIGEST_LEN);
         total_serialized +=DIGEST_LEN;
     }
-
     ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
     if(ret < total_serialized){
-        cout << "Worker for: " << this->username << ". Failed to send message " << msg.header.opcode<<endl;
+        cout << "Worker for: " << this->username <<". Failed to send message " << msg->header.opcode<<endl;
         free(buffer_message);
         return -1;
     }
@@ -114,12 +113,9 @@ int Worker::recv_msg_from_client(int socket_id, message *msg, bool hmac) {
         cout << "Worker for: " << this->username << ". Failed to receive data from client" << endl;
         return ret;
     }
-    cout<<"I received the header"<<endl;
 
     //deserialize header
-    buffer_iv = (unsigned char*)malloc(IV_LENGTH);
-    memcpy(h.initialization_vector, buffer_message, IV_LENGTH);
-    free(buffer_iv);
+    memcpy(h.initialization_vector, buffer_message, IV_LENGTH*sizeof(unsigned char));
     memcpy(&h.opcode, buffer_message+IV_LENGTH, OPCODE_LENGTH);
 
     unsigned int read_so_far = IV_LENGTH + OPCODE_LENGTH;
@@ -128,14 +124,10 @@ int Worker::recv_msg_from_client(int socket_id, message *msg, bool hmac) {
 
     for(int i=0; i<PAYLOAD_LENGTH_LEN; i+=sizeof(unsigned char)){
         p = *(buffer_message+read_so_far+i);
-        printf("%d\t", p);
         payload_length = (payload_length<<8) | p;
-        printf("%d\n", payload_length);
     }
     payload_length = (payload_length<<8);
     payload_length = ntohl(payload_length);
-
-    cout<<"Payload length should be: "<<payload_length<<endl;
 
     //check payload length
     if(payload_length>MAX_PAYLOAD_LENGTH){
