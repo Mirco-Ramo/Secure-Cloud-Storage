@@ -6,7 +6,7 @@
 #include "common_parameters.h"
 using namespace std;
 
-/*                  CHECK TAINTED INPUT                 */
+/*                  TAINTED INPUT SANITIZATION                */
 bool check_username(const string& username){
     char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-";
 
@@ -32,6 +32,7 @@ bool command_ok(const string& command){
     }
     return true;
 }
+
 
 
 /*                          DIFFIE-HELLMAN KEY EXCHANGE                 */
@@ -137,6 +138,7 @@ unsigned short generate_dh_secret(EVP_PKEY* &my_dhkey){
     return 1;
 }
 
+//Generates the session key and the kmac starting from dh shared secret
 int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned char* &session_key, unsigned short key_len, unsigned char* &kmac, unsigned short kmac_len){
 
     EVP_PKEY_CTX* derive_ctx;			//Context for symmetric key derivation
@@ -296,6 +298,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
     return 1;
 }
 
+//reads a public key from specified file
 bool read_pubkey(EVP_PKEY* &pubkey, string file_name){
     FILE* pubkey_file;
     int ret;
@@ -323,6 +326,7 @@ bool read_pubkey(EVP_PKEY* &pubkey, string file_name){
     return true;
 }
 
+//reads the private key from a specified file
 bool read_privkey(EVP_PKEY* &privkey, string privkey_file_name){
     FILE* privkey_file;
     int ret;
@@ -349,6 +353,7 @@ bool read_privkey(EVP_PKEY* &privkey, string privkey_file_name){
     return true;
 }
 
+//extracts the dh public key from a dh shared secret
 EVP_PKEY* extract_dh_pubkey(EVP_PKEY* my_dhkey){
     EVP_PKEY* dh_pubkey;
     int ret;
@@ -377,4 +382,460 @@ EVP_PKEY* extract_dh_pubkey(EVP_PKEY* my_dhkey){
     BIO_free(tmp);
 
     return dh_pubkey;
+}
+
+int sencode_EVP_PKEY (EVP_PKEY* to_encode, unsigned char* &buffer, unsigned short& buf_size){
+    int ret;
+    unsigned char* tmp_buf;
+    BIO* mem_bio = BIO_new(BIO_s_mem());
+    if(!mem_bio){
+        cerr<<"Error on instantiate BIO element\n";
+        return 0;
+    }
+
+    ret = PEM_write_bio_PUBKEY(mem_bio,to_encode);
+    if(ret == 0){
+        cerr<<"Error on PEM_write_bio_PUBKEY\n";
+        BIO_free(mem_bio);
+        return 0;
+    }
+
+    tmp_buf = NULL;
+    buf_size = BIO_get_mem_data(mem_bio, &tmp_buf);
+    buffer = (unsigned char*)malloc(buf_size);
+    if(!buffer){
+        cerr<<"Error on instantiate result buffer\n";
+        BIO_free(mem_bio);
+        return 0;
+    }
+    memcpy(buffer,tmp_buf,buf_size);
+
+    BIO_free(mem_bio);
+
+    return 1;
+}
+
+EVP_PKEY* decode_EVP_PKEY (unsigned char* to_decode, unsigned short buffer_len){
+    int ret;
+    EVP_PKEY* key;
+    BIO* mem_bio = BIO_new(BIO_s_mem());
+
+    if(!mem_bio){
+        cerr<<"Error on instantiate BIO element\n";
+        return NULL;
+    }
+
+    ret = BIO_write(mem_bio, to_decode, buffer_len);
+    if(ret != (int)buffer_len){
+        cerr<<"Error on BIO_write\n";
+        BIO_free(mem_bio);
+        return NULL;
+    }
+
+    key = PEM_read_bio_PUBKEY(mem_bio, NULL, NULL, NULL);
+    if(!key){
+        cerr<<"Error on PEM_read_bio_PUBKEY\n";
+        BIO_free(mem_bio);
+        return NULL;
+    }
+
+    BIO_free(mem_bio);
+    return key;
+}
+
+/*          SYMMETRIC ENCRYPTION        */
+int symm_encrypt(unsigned char* clear_buf, unsigned short clear_size, unsigned char* session_key, unsigned char* IV, unsigned char*& enc_buf, unsigned short& cipherlen){
+    int outlen;
+    int ret;
+    EVP_CIPHER_CTX* ctx;
+
+
+    ret = RAND_bytes(IV, IV_LENGTH);
+    if(ret != 1){
+        cerr << "Error: RAND_bytes fails. Return: "<<ret<<endl;
+        return 0;
+    }
+    ctx = EVP_CIPHER_CTX_new();
+    if(!ctx){
+        cerr << "Error: EVP_CIPHER_CTX_new returned NULL\n";
+        return 0;
+    }
+    int block_size = EVP_CIPHER_block_size(CIPHER);
+    enc_buf = (unsigned char*)malloc(clear_size + block_size);
+    if(!enc_buf) {
+        cerr << "Error: malloc returned NULL\n";
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+    ret = EVP_EncryptInit(ctx, CIPHER, session_key, IV);
+    if(ret != 1){
+        cerr << "Error: EVP_EncryptInit returned " << ret << "\n";
+        EVP_CIPHER_CTX_free(ctx);
+        free(enc_buf);
+        return 0;
+    }
+
+    //TODO adapt with cycles
+    ret = EVP_EncryptUpdate(ctx, enc_buf,&outlen, clear_buf, clear_size);
+    if(ret != 1){
+        cerr << "Error: EVP_EncryptUpdate returned " << ret << "\n";
+        EVP_CIPHER_CTX_free(ctx);
+        free(enc_buf);
+        return 0;
+    }
+    cipherlen = outlen;
+    ret = EVP_EncryptFinal(ctx, enc_buf + cipherlen, &outlen);
+    if(ret != 1){
+        cerr << "Error: EVP_EncryptFinal returned " << ret << "\n";
+        EVP_CIPHER_CTX_free(ctx);
+        free(enc_buf);
+        return 0;
+    }
+    cipherlen += outlen;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    return 1;
+}
+
+
+int symm_decrypt(unsigned char* enc_buf, unsigned short enc_size, unsigned char* session_key, unsigned char* IV, unsigned char*& clear_buf, unsigned short& clearlen){
+    int outlen;
+    int ret;
+    EVP_CIPHER_CTX* ctx;
+
+    ctx = EVP_CIPHER_CTX_new();
+    if(!ctx){
+        cerr << "Error: EVP_CIPHER_CTX_new returned NULL\n";
+        return 0;
+    }
+    clear_buf = (unsigned char*)malloc(enc_size);
+    if(!clear_buf) {
+        cerr << "Error: malloc returned NULL\n";
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+    ret = EVP_DecryptInit(ctx, CIPHER, session_key, IV);
+    if(ret != 1){
+        cerr << "Error: EVP_DecryptInit returned " << ret << "\n";
+        EVP_CIPHER_CTX_free(ctx);
+        free(clear_buf);
+        return 0;
+    }
+    //TODO adapt cycles
+    ret = EVP_DecryptUpdate(ctx, clear_buf, &outlen, enc_buf, enc_size);
+    if(ret != 1){
+        cerr << "Error: EVP_DecryptUpdate returned " << ret << "\n";
+        EVP_CIPHER_CTX_free(ctx);
+        free(clear_buf);
+        return 0;
+    }
+    clearlen = outlen;
+    ret = EVP_DecryptFinal(ctx, clear_buf + clearlen, &outlen);
+    if(ret != 1){
+        cerr << "Error: EVP_DecryptFinal returned " << ret << "\n";
+        EVP_CIPHER_CTX_free(ctx);
+        free(clear_buf);
+        return 0;
+    }
+    clearlen += outlen;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    return 1;
+}
+
+
+
+
+
+
+
+
+/*              CERTIFICATES            */
+
+//reads a certificate from file
+X509* read_certificate(string certificate_name){
+    FILE* certificate_file = fopen(certificate_name.c_str(), "r");
+    if(!certificate_file){
+        cerr << "Error: cannot open file '" << certificate_name << "' (missing?)\n";
+        return NULL;
+    }
+
+    X509* certificate = PEM_read_X509(certificate_file, NULL, NULL, NULL);
+    fclose(certificate_file);
+    if(!certificate){
+        cerr << "Error: PEM_read_X509 returned NULL\n";
+        return NULL;
+    }
+
+    return certificate;
+}
+
+//verifies authenticity of a certificates, given a CA certificate and relative crl
+int verify_certificate(X509* cert_to_verify,const string& ca_cert_file_name, const string& crl_file_name){
+    int ret;
+
+    //load CA certificate
+    FILE* ca_cert_file = fopen(ca_cert_file_name.c_str(), "r");
+    if(!ca_cert_file){
+        cerr << "Error: cannot open file '" << ca_cert_file_name << "' (missing?)\n";
+        return -1;
+    }
+    X509* ca_certificate = PEM_read_X509(ca_cert_file, NULL, NULL, NULL);
+    fclose(ca_cert_file);
+    if(!ca_certificate){
+        cerr << "Error: PEM_read_X509 returned NULL\n";
+        return -1;
+    }
+
+    //load CRL
+    FILE* crl_file = fopen(crl_file_name.c_str(), "r");
+    if(!crl_file){
+        cerr << "Error: cannot open file '" << crl_file_name << "' (missing?)\n";
+        X509_free(ca_certificate);
+        return -1;
+    }
+    X509_CRL* crl = PEM_read_X509_CRL(crl_file, NULL, NULL, NULL);
+    fclose(crl_file);
+    if(!crl){
+        cerr << "Error: PEM_read_X509_CRL returned NULL\n";
+        X509_free(ca_certificate);
+        return -1;
+    }
+
+    X509_STORE* store = X509_STORE_new();
+    if(!store) {
+        cerr << "Error: X509_STORE_new returned NULL\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        return -1;
+    }
+    ret = X509_STORE_add_cert(store, ca_certificate);
+    if(ret != 1) {
+        cerr << "Error: X509_STORE_add_cert returned " << ret << "\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        return -1;
+    }
+    ret = X509_STORE_add_crl(store, crl);
+    if(ret != 1) {
+        cerr << "Error: X509_STORE_add_crl returned " << ret << "\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        return -1;
+    }
+    ret = X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK);
+    if(ret != 1) {
+        cerr << "Error: X509_STORE_set_flags returned " << ret << "\n" ;
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        return -1;
+    }
+
+    //verification
+    X509_STORE_CTX* certvfy_ctx = X509_STORE_CTX_new();
+    if(!certvfy_ctx) {
+        cerr << "Error: X509_STORE_CTX_new returned NULL\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        return -1;
+    }
+
+    ret = X509_STORE_CTX_init(certvfy_ctx, store, cert_to_verify, NULL);
+    if(ret != 1) {
+        cerr << "Error: X509_STORE_CTX_init returned " << ret << "\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        X509_STORE_CTX_free(certvfy_ctx);
+        return -1;
+    }
+
+    ret = X509_verify_cert(certvfy_ctx);
+    if(ret == 0) {
+        cerr << "Error: peer certificate not verified " << ret << "\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        X509_STORE_CTX_free(certvfy_ctx);
+        return -1;
+    }
+    else if(ret < 0) {
+        cerr << "Error: X509_verify_cert returned " << ret << "\n";
+        X509_free(ca_certificate);
+        X509_CRL_free(crl);
+        X509_STORE_free(store);
+        X509_STORE_CTX_free(certvfy_ctx);
+        return -1;
+    }
+
+    X509_free(ca_certificate);
+    X509_CRL_free(crl);
+    X509_STORE_free(store);
+    X509_STORE_CTX_free(certvfy_ctx);
+
+    return 1;
+}
+int encode_certificate (X509* to_serialize, unsigned char* &buffer, unsigned short& buf_size){
+    int ret;
+    unsigned char* tmp_buf;
+    BIO* mem_bio = BIO_new(BIO_s_mem());
+    if(!mem_bio){
+        cerr<<"Error on instantiate BIO element\n";
+        return 0;
+    }
+
+    ret = PEM_write_bio_X509(mem_bio,to_serialize);
+    if(ret == 0){
+        cerr<<"Error on PEM_write_bio_X509\n";
+        BIO_free(mem_bio);
+        return 0;
+    }
+
+    tmp_buf = NULL;
+    buf_size = BIO_get_mem_data(mem_bio, &tmp_buf);
+    buffer = (unsigned char*)malloc(buf_size);
+    if(!buffer){
+        BIO_free(mem_bio);
+        cerr<<"Error on instantiate result buffer\n";
+        return 0;
+    }
+    //copia dal buffer interno al BIO ad un buffer esterno
+    memcpy(buffer,tmp_buf,buf_size);
+
+    BIO_free(mem_bio);
+
+    return 1;
+}
+
+X509* decode_certificate (unsigned char* to_deserialize, unsigned short buffer_len){
+    int ret;
+    X509* cert;
+    BIO* mem_bio = BIO_new(BIO_s_mem());
+    if(!mem_bio){
+        cerr<<"Error on instantiate BIO element\n";
+        return NULL;
+    }
+
+    ret = BIO_write(mem_bio, to_deserialize, buffer_len);
+    if(ret != (int)buffer_len){
+        cerr<<"Error on BIO_write\n";
+        BIO_free(mem_bio);
+        return NULL;
+    }
+
+    cert = PEM_read_bio_X509(mem_bio, NULL, NULL, NULL);
+    if(!cert){
+        cerr<<"Error on PEM_read_bio_X509\n";
+        BIO_free(mem_bio);
+        return NULL;
+    }
+
+    BIO_free(mem_bio);
+    return cert;
+}
+
+
+
+/*                  HMAC                        */
+
+int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned short& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number){
+    unsigned short total_input_len;
+    for(unsigned short i=0; i<inputs_number; ++i){
+        total_input_len += input_lengths[i];
+    }
+
+    buffer_mac_len = total_input_len;
+    buffer_mac = (unsigned char*) malloc(buffer_mac_len);
+    if(!buffer_mac){
+        cerr << "Malloc fails\n";
+        return 0;
+    }
+    unsigned int total_buffered=0;
+    for(unsigned short i=0; i<inputs_number; ++i){
+        memcpy(buffer_mac+total_buffered, inputs[i], input_lengths[i]);
+        total_buffered+=input_lengths[i];
+    }
+    return total_buffered;
+}
+
+
+int compute_hmac(unsigned char* payload, unsigned short payload_len, unsigned char*& hmac_digest,unsigned char* hmac_key){
+    HMAC_CTX* hmac_ctx;
+    int ret;
+    unsigned int outlen;
+
+    hmac_ctx = HMAC_CTX_new();
+    if(!hmac_ctx){
+        cerr << "Error: HMAC_CTX_new returned NULL"<<endl;
+        return 0;
+    }
+
+    hmac_digest = (unsigned char*) malloc(DIGEST_LEN);
+    if(!hmac_digest) {
+        cerr << "Error: malloc returned NULL\n";
+        HMAC_CTX_free(hmac_ctx);
+        return 0;
+    }
+
+    ret = HMAC_Init_ex(hmac_ctx,hmac_key,HMAC_KEY_LEN,MAC_TYPE,NULL);
+    if(ret != 1){
+        cerr << "Error: HMAC_Init returned " << ret << "\n";
+        HMAC_CTX_free(hmac_ctx);
+        free(hmac_digest);
+        return 0;
+    }
+
+    ret= HMAC_Update(hmac_ctx, payload, payload_len);
+    if(ret != 1){
+        cerr << "Error: HMAC_Update returned " << ret << "\n";
+        HMAC_CTX_free(hmac_ctx);
+        free(hmac_digest);
+        return 0;
+    }
+
+    ret = HMAC_Final(hmac_ctx, hmac_digest, &outlen);
+    if(ret != 1){
+        cerr << "Error: HMAC_Final returned " << ret << "\n";
+        HMAC_CTX_free(hmac_ctx);
+        free(hmac_digest);
+        return 0;
+    }
+    if(outlen != DIGEST_LEN){
+        cerr << "Error: HMAC_Final returned unexpected digest length\n";
+        HMAC_CTX_free(hmac_ctx);
+        free(hmac_digest);
+        return 0;
+    }
+
+    HMAC_CTX_free(hmac_ctx);
+
+    return 1;
+}
+
+int verify_hmac(unsigned char* digest, unsigned char* payload, unsigned short payload_len,unsigned char* hmac_key){
+    unsigned char* computed_digest;
+    int ret;
+
+    ret = compute_hmac(payload, payload_len, computed_digest, hmac_key);
+    if(ret != 1){
+        cerr << "Error on hmac verify\n";
+        if(computed_digest)
+            free(computed_digest);
+        return ret;
+    }
+
+    ret = CRYPTO_memcmp(computed_digest, digest, DIGEST_LEN);
+
+    free(computed_digest);
+    if(ret != 0){ //Wrong digests
+        cerr << "The message results to be not authenticated\n";
+        return -1;
+    }
+    return 1;
 }
