@@ -2,11 +2,12 @@
 // Created by Francesco del Turco, Mirco Ramo
 //
 
-#include "client_include.h"
-#include "struct_message.h"
+#include "common_parameters.h"
+#include "common_functions.h"
+using namespace std;
 
 message* build_message(unsigned char* iv, unsigned char opcode,
-                              unsigned int payload_length, unsigned char* payload, bool hmac){
+                       unsigned int payload_length, unsigned char* payload, bool hmac){
 
     fixed_header* h=new fixed_header();
     memcpy(h->initialization_vector, iv, IV_LENGTH);
@@ -23,24 +24,24 @@ message* build_message(unsigned char* iv, unsigned char opcode,
 }
 
 
-int send_msg_to_server(int socket_id, message* msg, bool hmac){
+int send_msg(int socket_id, message* msg, bool hmac, string identity){
     int ret;
     unsigned char* buffer_message;
 
     if(msg->header.payload_length>MAX_PAYLOAD_LENGTH){
-        cout << "Payload is over maximum allowed value" << endl;
+        cout << "["+identity+"]:"<<"Payload is over maximum allowed value" << endl;
         return -1;
     }
 
     unsigned int total_len = FIXED_HEADER_LENGTH + msg->header.payload_length + (hmac? DIGEST_LEN : 0);
 
     if (total_len > UINT_MAX/sizeof(unsigned char)) {
-        cout << "Message size too long, cannot allocate buffer" << endl;
+        cout << "["+identity+"]:"<< "Message size too long, cannot allocate buffer" << endl;
         return -1;
     }
     buffer_message = (unsigned char*)malloc(sizeof(unsigned char) * total_len);
     if(!buffer_message){
-        cout << "Cannot allocate buffer to send message" << endl;
+        cout << "["+identity+"]:"<< "Cannot allocate buffer to send message" << endl;
         return -1;
     }
 
@@ -56,7 +57,7 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
     //payload_length serialization (3 Bytes)
     unsigned char* buffer_payload = (unsigned char*)malloc(PAYLOAD_LENGTH_LEN*sizeof(unsigned char));
     if(!buffer_payload){
-        cout << "Cannot allocate buffer" << endl;
+        cout << "["+identity+"]:"<< "Cannot allocate buffer" << endl;
         return -1;
     }
     for(int len_left=(PAYLOAD_LENGTH_LEN-sizeof(unsigned char)); len_left>=0; len_left--){
@@ -76,7 +77,7 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
     }
     ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
     if(ret < total_serialized){
-        cout << "Failed to send message " << msg->header.opcode<<endl;
+        cout << "["+identity+"]:"<< "Failed to send message " << msg->header.opcode<<endl;
         free(buffer_message);
         return -1;
     }
@@ -87,14 +88,14 @@ int send_msg_to_server(int socket_id, message* msg, bool hmac){
 
 
 
-int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
+int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     int ret;
     unsigned char* buffer_message, *buffer_iv;
     fixed_header h{};
 
     buffer_message = (unsigned char*)malloc(FIXED_HEADER_LENGTH);
     if(!buffer_message){
-        cout << "Cannot allocate buffer to receive message" << endl;
+        cout << "["+identity+"]:"<< "Cannot allocate buffer to receive message" << endl;
         return -1;
     }
 
@@ -102,12 +103,12 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     ret = recv(socket_id,(void*)buffer_message, FIXED_HEADER_LENGTH,0);
     if(ret <= 0){
         free(buffer_message);
-        cout << "Cannot receive data from client" << endl;
+        cout << "["+identity+"]:"<< "Cannot receive data from client" << endl;
         return ret;
     }
     if(ret < FIXED_HEADER_LENGTH){
         free(buffer_message);
-        cout << "Failed to receive data from client" << endl;
+        cout << "["+identity+"]:"<< "Failed to receive data from client" << endl;
         return ret;
     }
 
@@ -129,7 +130,7 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     //check payload length
     if(payload_length>MAX_PAYLOAD_LENGTH){
         free(buffer_message);
-        cout << "Payload is over maximum allowed value" << endl;
+        cout << "["+identity+"]:"<< "Payload is over maximum allowed value" << endl;
         return -1;
     }
     h.payload_length = payload_length;
@@ -137,19 +138,19 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
     free(buffer_message);
 
     if (payload_length > UINT_MAX/sizeof(unsigned char)) {
-        cout << "Message size too long, cannot allocate buffer" << endl;
+        cout << "["+identity+"]:"<< "Message size too long, cannot allocate buffer" << endl;
         return -1;
     }
     buffer_message = (unsigned char*)malloc(sizeof(unsigned char) * payload_length);
     if(!buffer_message){
-        cout << "Cannot allocate buffer to receive payload" << endl;
+        cout << "["+identity+"]:"<< "Cannot allocate buffer to receive payload" << endl;
         return -1;
     }
 
     ret = recv(socket_id,(void*)buffer_message, payload_length, 0);
     if(ret < payload_length){
         free(buffer_message);
-        cout << "Payload receive failed" << endl;
+        cout << "["+identity+"]:"<< "Payload receive failed" << endl;
         return ret;
     }
 
@@ -160,20 +161,16 @@ int recv_msg_from_server(int socket_id, message *msg, bool hmac) {
 
     unsigned char* buffer_hmac = (unsigned char*)malloc(DIGEST_LEN);
     if(!buffer_hmac){
-        cout << "Cannot allocate buffer to receive hmac" << endl;
+        cout << "["+identity+"]:"<< "Cannot allocate buffer to receive hmac" << endl;
         return -1;
     }
     ret = recv(socket_id,(void*)buffer_hmac, DIGEST_LEN, 0);
     if(ret < DIGEST_LEN){
         free(buffer_hmac);
-        cout << "Hmac receive failed" << endl;
+        cout << "["+identity+"]:"<< "Hmac receive failed" << endl;
         return ret;
     }
 
     memcpy(msg->hmac, buffer_hmac, DIGEST_LEN);
     return FIXED_HEADER_LENGTH + payload_length + ret;
-
 }
-
-
-

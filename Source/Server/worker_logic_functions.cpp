@@ -2,7 +2,6 @@
 // Created by Francesco del Turco, Mirco Ramo
 //
 
-#include "server_include.h"
 #include "worker.h"
 
 Worker::Worker(int socket_id) {
@@ -10,6 +9,7 @@ Worker::Worker(int socket_id) {
     this->logout_request = false;
     this->worker_counter = 0;
     this->client_counter = 0;
+    this->identity = "Worker for: "+this->username;
 }
 
 void* Worker::handle_commands_helper(void *context)
@@ -22,7 +22,7 @@ void* Worker::handle_commands() {
     while(!this->logout_request){
         cout<<"Listening for requests"<<endl;
         message* m = new message();
-        int ret = this->recv_msg_from_client(this->socket_id, m, false);
+        int ret = recv_msg(this->socket_id, m, false, this->identity);
         cout<<"Return value was: "<<ret<<endl;
         cout<<"Payload length is: "<<m->header.payload_length<<endl;
 
@@ -41,7 +41,7 @@ void* Worker::handle_commands() {
         char* hello_msg = "Hello to you, my kind client!\n";
         cout<<"I send you: "<<hello_msg<<endl;
         m = build_message(iv_buf, opcode, strlen(hello_msg)+1, (unsigned char *)(hello_msg), false);
-        send_msg_to_client(this->socket_id, m, false);
+        send_msg(this->socket_id, m, false, identity);
 
         //TODO wait for command
 

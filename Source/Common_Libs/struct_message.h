@@ -1,26 +1,12 @@
 //
-// Created by Francesco Del Turco, Mirco Ramo.
+// Created by mirco on 18/06/2022.
 //
 
 #ifndef SECURE_CLOUD_STORAGE_STRUCT_MESSAGE_H
 #define SECURE_CLOUD_STORAGE_STRUCT_MESSAGE_H
 
-#endif //SECURE_CLOUD_STORAGE_STRUCT_MESSAGE_H
 
-#include "server_include.h"
-
-#define CIPHER              EVP_aes_128_cbc()
-#define IV_LENGTH           16 //(unsigned int)EVP_CIPHER_iv_length(CIPHER)
-#define OPCODE_LENGTH       1
-#define MAX_PAYLOAD_LENGTH  256*256*256-1 //3 Byte
-#define KEY_LEN             EVP_CIPHER_key_length(CIPHER)
-#define SHA_256             EVP_sha256()
-#define DIGEST_LEN          32 //(unsigned int)EVP_MD_size(SHA_256)
-#define HMAC_KEY_LEN        32
-#define NONCE_LENGTH        IV_LENGTH
-#define FIXED_HEADER_LENGTH 20
-#define PAYLOAD_LENGTH_LEN  3
-
+#include "common_parameters.h"
 /*      OPCODES     */
 
 
@@ -64,3 +50,4 @@ struct message{
     unsigned char hmac[DIGEST_LEN];
 };
 
+#endif //SECURE_CLOUD_STORAGE_STRUCT_MESSAGE_H

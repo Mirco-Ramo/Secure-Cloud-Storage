@@ -3,6 +3,7 @@
 //
 
 #include "client_include.h"
+#include "client_functions.h"
 
 int connect_to_server(sockaddr_in* server_addr, int* client_socket){
     const char *ip = SERVER_ADDRESS;

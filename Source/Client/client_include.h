@@ -7,6 +7,8 @@
 
 #endif //SECURE_CLOUD_STORAGE_CLIENT_INCLUDE_H
 
+#include "../Common_Libs/common_parameters.h"
+
 /*              MACROS              */
 #define SERVER_ADDRESS "127.0.0.1"
 #define SERVER_PORT 2210
@@ -27,28 +29,5 @@
                      PROMPT "LOGOUT: closes connection with server and exits the service\n" \
 
 /*              LIBRARIES           */
-#include <csignal>
-#include "signal.h"
-#include "string.h"
-#include "cstring"
-#include <iostream>
-#include <sys/types.h>
-#include <cerrno>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <ctime>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <climits>
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <openssl/ssl.h>
-#include <openssl/crypto.h>
-#include <openssl/x509.h>
 
 using namespace std;

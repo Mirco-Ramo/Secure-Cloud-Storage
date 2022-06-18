@@ -8,22 +8,29 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${GCC_ENABLE_WARNINGS}")
 SET(CMAKE_CXX_FLAGS -pthread)
 include_directories(Source/Client)
 include_directories(Source/Server)
-#add_executable(Secure_Cloud_Storage ${SOURCE_FILES})
+include_directories(Source/Common_Libs)
 
 add_executable(Server Source/Server/server_main.cpp
+        Source/Common_Libs/common_parameters.h
+        Source/Common_Libs/common_functions.h
+        Source/Common_Libs/struct_message.h
         Source/Server/server_include.h
         Source/Server/worker.h
         Source/Server/server_functions.h
+        Source/Common_Libs/communication_utilities.cpp
+        Source/Common_Libs/crypto_utilities.cpp
         Source/Server/worker_logic_functions.cpp
         Source/Server/worker_protocol_functions.cpp
         Source/Server/server_conn_functions.cpp
-        Source/Server/struct_message.h
-        Source/Server/worker_message_exchange.cpp)
+        )
 
 add_executable(Client Source/Client/client_main.cpp
-        Source/Client/struct_message.h
-        Source/Client/client_message_exchange.cpp
+        Source/Common_Libs/common_parameters.h
+        Source/Common_Libs/common_functions.h
+        Source/Common_Libs/struct_message.h
         Source/Client/client_functions.h
+        Source/Common_Libs/communication_utilities.cpp
+        Source/Common_Libs/crypto_utilities.cpp
         Source/Client/client_conn_functions.cpp
         Source/Client/client_logic_functions.cpp
-        Source/Client/client_protocol_functions.cpp)
+        Source/Client/client_protocol_functions.cpp )

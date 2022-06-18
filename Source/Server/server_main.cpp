@@ -4,6 +4,7 @@
 
 #include "server_include.h"
 #include "server_functions.h"
+using namespace std;
 
 int main(int argc,char* argv[]){
     cout << "Initialization in progress ..."<<endl;

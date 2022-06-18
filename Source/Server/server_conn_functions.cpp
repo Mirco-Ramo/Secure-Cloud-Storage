@@ -2,9 +2,9 @@
 // Created by Francesco del Turco, Mirco Ramo
 //
 
-#include "server_include.h"
 #include "worker.h"
 #include "server_functions.h"
+using namespace std;
 
 int connectionSocketListener;
 

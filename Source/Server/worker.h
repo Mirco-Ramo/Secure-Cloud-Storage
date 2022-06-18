@@ -6,13 +6,13 @@
 #define SECURE_CLOUD_STORAGE_WORKER_H
 
 #include "server_include.h"
-#include "struct_message.h"
+
+using namespace std;
 
 class Worker {
     int socket_id;
-    //struct sockaddr_in worker_addr;   ?
-    //struct sockaddr_in client_addr;   ?
     string username;
+    string identity;
     bool logout_request;
     long worker_counter;
     long client_counter;
@@ -27,16 +27,6 @@ public:
 
     /*      PROTOCOL MANAGEMENT    */
     bool establish_session();
-    unsigned char* initialize_iv();
-
-    /*      SECURE CODING CHECKS    */
-    static bool check_username(const string& username);
-    static bool check_file_name(const string& file_name);
-
-    /*      MESSAGE EXCHANGE        */
-    message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
-    int send_msg_to_client(int socket_id, message* msg, bool hmac);
-    int recv_msg_from_client(int socket_id, message* msg, bool hmac);
 
     /*      LOGIC COMMANDS          */
     void* handle_commands();

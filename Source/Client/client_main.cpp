@@ -4,9 +4,13 @@
 
 #include "client_include.h"
 #include "client_functions.h"
+#include "../Common_Libs/common_parameters.h"
+#include "../Common_Libs/common_functions.h"
+
 
 int client_socket;
 string username;
+string identity;
 bool exit_flag = false;
 
 int main(int argc, char** argv) {
@@ -29,7 +33,7 @@ int main(int argc, char** argv) {
         cerr << "Invalid username. Only alphanumeric characters, dashes and underscores allowed"<<endl;
         exit(-1);
     }
-
+    identity = "CLIENT " + username;
     ret = connect_to_server(&server_addr, &client_socket);    //collateral effect: server_addr initialization
     if (ret < 0)
         exit(-2);
@@ -91,12 +95,12 @@ int main(int argc, char** argv) {
             printf("%x", *(iv_buf+i));
         }
         m = build_message(iv_buf, opcode, command.size()+1, (unsigned char *)(command.c_str()), false);
-        send_msg_to_server(client_socket, m, false);
+        send_msg(client_socket, m, false, identity);
         if(command.size()>30)
             logout_request=true;
 
         m = new message();
-        int ret = recv_msg_from_server(client_socket, m, false);
+        int ret = recv_msg(client_socket, m, false, identity);
         cout<<"Return value was: "<<ret<<endl;
         cout<<"Payload length is: "<<m->header.payload_length<<endl;
 
