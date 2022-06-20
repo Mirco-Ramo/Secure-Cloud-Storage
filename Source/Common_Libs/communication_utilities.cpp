@@ -7,7 +7,7 @@
 using namespace std;
 
 message* build_message(unsigned char* iv, unsigned char opcode,
-                       unsigned int payload_length, unsigned char* payload, bool hmac, unsigned char* hmac_key=NULL){
+                       unsigned int payload_length, unsigned char* payload, bool hmac, unsigned char* hmac_key, unsigned int counter){
 
     fixed_header* h=new fixed_header();
     if(!iv)
@@ -24,13 +24,16 @@ message* build_message(unsigned char* iv, unsigned char opcode,
         unsigned short buffer_mac_len;
 
         unsigned char payload_len_bytes[PAYLOAD_LENGTH_LEN];
-        for (int i=0; i<PAYLOAD_LENGTH_LEN; i++){
-        payload_len_bytes[i]=(unsigned char)(payload_length>>((PAYLOAD_LENGTH_LEN-1-i)*8));
-        }
-        unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, payload_length};
-        unsigned char* inputs[] = {iv, &opcode, payload_len_bytes, payload};
-        unsigned int inputs_number=4; //iv, opcode, payload_length, payload
-        if (prepare_buffer_for_hmac(buffer_mac, buffer_mac_len, inputs, input_lengths, inputs_number)!=FIXED_HEADER_LENGTH+payload_length){
+        unsigned char counter_bytes[sizeof(unsigned int)];
+        for (int i=0; i<PAYLOAD_LENGTH_LEN; i++)
+            payload_len_bytes[i]=(unsigned char)(payload_length>>((PAYLOAD_LENGTH_LEN-1-i)*8));
+        for (int i=0; i<sizeof(unsigned int); i++)
+            counter_bytes[i]=(unsigned char)(counter>>((sizeof(unsigned int)-1-i)*8));
+
+        unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, payload_length, sizeof(unsigned int)};
+        unsigned char* inputs[] = {iv, &opcode, payload_len_bytes, payload, counter_bytes};
+        unsigned int inputs_number=5; //iv, opcode, payload_length, payload, counter
+        if (prepare_buffer_for_hmac(buffer_mac, buffer_mac_len, inputs, input_lengths, inputs_number)!=FIXED_HEADER_LENGTH+payload_length+sizeof(unsigned int)){
             cerr<<"Impossible to create buffer for hmac: Message build aborted";
             return NULL;
         }

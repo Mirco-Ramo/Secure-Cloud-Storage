@@ -17,6 +17,11 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
     EVP_PKEY* client_pub_dhkey = extract_dh_pubkey(client_dhkey);
+    if (client_pub_dhkey == NULL){
+        cerr<<"Cannot extract dh pub key"<<endl;
+        EVP_PKEY_free(client_dhkey);
+        return false;
+    }
     unsigned short encoded_client_pub_dhkey_len;
     unsigned char* encoded_client_pub_dhkey;
     if(!encode_EVP_PKEY(client_pub_dhkey, encoded_client_pub_dhkey, encoded_client_pub_dhkey_len)){

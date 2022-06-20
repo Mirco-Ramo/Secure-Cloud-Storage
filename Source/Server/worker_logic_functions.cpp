@@ -5,6 +5,7 @@
 #include "worker.h"
 
 Worker::Worker(int socket_id) {
+    this->username = to_string(rand() % 100); //temporary name, no guarantees on uniqueness
     this->socket_id = socket_id;
     this->logout_request = false;
     this->worker_counter = 0;
@@ -16,6 +17,7 @@ void Worker::handleErrors(const string& reason, int exit_code){
     cerr<<reason<<endl;
     if (exit_code) {
         delete this;
+        //TODO this is a temporary function
         exit(exit_code);
     }
 }
@@ -139,6 +141,10 @@ void Worker::handle_logout() {
 }
 
 Worker::~Worker() {
+#pragma optimize("", off)
+    memset(this->session_key, 0, KEY_LEN);
+    memset(this->hmac_key, 0, HMAC_KEY_LEN);
+#pragma optimize("", on)
     close(this->socket_id);
 }
 

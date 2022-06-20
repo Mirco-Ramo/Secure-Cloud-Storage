@@ -16,8 +16,8 @@ class Worker {
     bool logout_request;
     long worker_counter;
     long client_counter;
-    //shared_key;
-    //shared_mac;
+    unsigned char session_key[KEY_LEN];
+    unsigned char hmac_key[HMAC_KEY_LEN];
     //user_nonce; ?
     //my_nonce;   ?
     //received_Command

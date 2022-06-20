@@ -4,8 +4,6 @@
 
 #include "client_include.h"
 #include "client_functions.h"
-#include "../Common_Libs/common_parameters.h"
-#include "../Common_Libs/common_functions.h"
 
 
 int client_socket;

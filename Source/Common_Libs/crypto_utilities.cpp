@@ -216,8 +216,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
         return -4;
     }
 
-    //allocare memoria per il digest
-    digest = (unsigned char*) malloc(DIGEST_LEN);
+    digest = (unsigned char*) malloc(EVP_MD_size(EVP_sha512()));
     if(!digest){
         cerr<<"Impossible to allocate digest buffer\n";
         EVP_MD_CTX_free(hash_context);
@@ -231,12 +230,11 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
 
 
     //Init, update and finalize of digest
-    ret=EVP_DigestInit(hash_context,EVP_sha256());
+    ret=EVP_DigestInit(hash_context,EVP_sha512());
     if(ret == 0){
         cerr<<"Cannot init digest context\n";
         EVP_MD_CTX_free(hash_context);
 #pragma optimize("", off)
-        memset(digest,0,digest_len);
         memset(skey,0,skeylen);
 #pragma optimize("", on)
 
@@ -449,6 +447,8 @@ EVP_PKEY* decode_EVP_PKEY (unsigned char* to_decode, unsigned short buffer_len){
     return key;
 }
 
+
+
 /*          SYMMETRIC ENCRYPTION        */
 int symm_encrypt(unsigned char* clear_buf, unsigned short clear_size, unsigned char* session_key, unsigned char* IV, unsigned char*& enc_buf, unsigned short& cipherlen){
     int outlen;
@@ -551,7 +551,91 @@ int symm_decrypt(unsigned char* enc_buf, unsigned short enc_size, unsigned char*
     return 1;
 }
 
+/*              DIGITAL SIGNATURES      */
+int apply_signature(unsigned char* clear_buf, unsigned short clear_size, unsigned char*& sgnt_buf, unsigned int &sgnt_size, EVP_PKEY* privkey){
+    int ret;
 
+    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+    if(!md_ctx){
+        cerr << "Error: EVP_MD_CTX_new returned NULL\n";
+        return 0;
+    }
+
+    sgnt_buf = (unsigned char*)malloc(EVP_PKEY_size(privkey));
+    if(!sgnt_buf) {
+        cerr << "Error: malloc returned NULL (signature too big?)\n";
+        EVP_MD_CTX_free(md_ctx);
+        return 0;
+    }
+
+    ret = EVP_SignInit(md_ctx, MAC_TYPE);
+    if(ret == 0){
+        cerr << "Error: EVP_SignInit returned " << ret << "\n";
+        EVP_MD_CTX_free(md_ctx);
+        free(sgnt_buf);
+        return 0;
+    }
+
+    ret = EVP_SignUpdate(md_ctx, clear_buf, clear_size);
+    if(ret == 0){
+        cerr << "Error: EVP_SignUpdate returned " << ret << "\n";
+        EVP_MD_CTX_free(md_ctx);
+        free(sgnt_buf);
+        return 0;
+    }
+
+
+    ret = EVP_SignFinal(md_ctx, sgnt_buf, &sgnt_size, privkey);
+    if(ret == 0){
+        cerr << "Error: EVP_SignFinal returned " << ret << "\n";
+        EVP_MD_CTX_free(md_ctx);
+        free(sgnt_buf);
+        return 0;
+    }
+
+    EVP_MD_CTX_free(md_ctx);
+    return 1;
+}
+
+int verify_signature(unsigned char* signed_buf,  unsigned short signed_size, unsigned char* clear_buf, unsigned short clear_size, EVP_PKEY* peer_pubkey){
+    int ret;
+
+    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+    if(!md_ctx){
+        cerr << "Error: EVP_MD_CTX_new returned NULL"<<endl;
+        return -1;
+    }
+
+    ret = EVP_VerifyInit(md_ctx, MAC_TYPE);
+    if(ret == 0){
+        cerr << "Error: EVP_VerifyInit returned " << ret << endl;
+        EVP_MD_CTX_free(md_ctx);
+        return -1;
+    }
+
+    ret = EVP_VerifyUpdate(md_ctx, clear_buf, clear_size);
+    if(ret == 0){
+        cerr << "Error: EVP_VerifyUpdate returned " << ret << endl;
+        EVP_MD_CTX_free(md_ctx);
+        return -1;
+    }
+
+    ret = EVP_VerifyFinal(md_ctx, signed_buf, signed_size, peer_pubkey);
+    if(ret == -1){
+        cerr << "Error: EVP_VerifyFinal returned " << ret << " (invalid signature?)"<<endl;
+        EVP_MD_CTX_free(md_ctx);
+        return -1;
+    }
+    else if(ret == 0){//INVALID SIGNATURE
+        cerr << "Error: Invalid signature!"<<endl;
+        EVP_MD_CTX_free(md_ctx);
+        return 0;
+    }
+
+    EVP_MD_CTX_free(md_ctx);
+
+    return ret;
+}
 
 
 
@@ -564,7 +648,7 @@ int symm_decrypt(unsigned char* enc_buf, unsigned short enc_size, unsigned char*
 X509* read_certificate(string certificate_name){
     FILE* certificate_file = fopen(certificate_name.c_str(), "r");
     if(!certificate_file){
-        cerr << "Error: cannot open file '" << certificate_name << "' (missing?)\n";
+        cerr << "Error: cannot open file '" << certificate_name << "' (missing?)"<<endl;
         return NULL;
     }
 
