@@ -37,13 +37,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
         free(encoded_client_pub_dhkey);
         return false;
     }
-    BIO_dump_fp (stdout, (const char*)client_pub_dhkey, m1->header.payload_length);
-    cout<<"\n\n";
-    BIO_dump_fp (stdout, (const char*)client_pub_dhkey, encoded_client_pub_dhkey_len);
-    cout<<"\n\n";
-    BIO_dump_fp (stdout, (const char*)encoded_client_pub_dhkey, encoded_client_pub_dhkey_len);
-    cout<<"\n\n";
-    cout<<m1->header.payload_length<<"\t"<<encoded_client_pub_dhkey_len<<endl;
+
 #pragma optimize("", off)
     memset(encoded_client_pub_dhkey, 0, encoded_client_pub_dhkey_len);
 #pragma optimize("", on)

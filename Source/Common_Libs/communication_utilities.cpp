@@ -7,7 +7,7 @@
 using namespace std;
 
 message* build_message(unsigned char* iv, unsigned char opcode,
-                       unsigned int payload_length, unsigned char* payload, bool hmac){
+                       unsigned int payload_length, unsigned char* payload, bool hmac, unsigned char* hmac_key=NULL){
 
     fixed_header* h=new fixed_header();
     if(!iv)
@@ -19,9 +19,32 @@ message* build_message(unsigned char* iv, unsigned char opcode,
     message* m = new message();
     m->header = *h;
     m->payload = payload;
-    if(hmac)
-        //compute hmac
-        int a=0;
+    if(hmac){
+        unsigned char* buffer_mac;
+        unsigned short buffer_mac_len;
+
+        unsigned char payload_len_bytes[PAYLOAD_LENGTH_LEN];
+        for (int i=0; i<PAYLOAD_LENGTH_LEN; i++){
+        payload_len_bytes[i]=(unsigned char)(payload_length>>((PAYLOAD_LENGTH_LEN-1-i)*8));
+        }
+        unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, payload_length};
+        unsigned char* inputs[] = {iv, &opcode, payload_len_bytes, payload};
+        unsigned int inputs_number=4; //iv, opcode, payload_length, payload
+        if (prepare_buffer_for_hmac(buffer_mac, buffer_mac_len, inputs, input_lengths, inputs_number)!=FIXED_HEADER_LENGTH+payload_length){
+            cerr<<"Impossible to create buffer for hmac: Message build aborted";
+            return NULL;
+        }
+        unsigned char* hmac_result;
+        if(!compute_hmac(buffer_mac, buffer_mac_len, hmac_result, hmac_key)){
+            cerr<<"Impossible to compute hmac: Message build aborted";
+            return NULL;
+        }
+        memcpy(m->hmac, hmac_result, DIGEST_LEN);
+        free(buffer_mac);
+        free(hmac_result);
+    }
+
+
 
     return m;
 }

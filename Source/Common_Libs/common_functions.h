@@ -15,7 +15,7 @@ bool command_ok(const std::string& command);
 
 
 /*          MESSAGE EXCHANGE        */
-message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac);
+message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac, unsigned char* hmac_key);
 int send_msg(int socket_id, message* msg, bool hmac, std::string identity);
 int recv_msg(int socket_id, message *msg, bool hmac, std::string identity);
 
