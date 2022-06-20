@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     if (ret < 0)
         exit(-2);
 
-    if (!begin_session(client_socket)){
+    if (!begin_session(client_socket, username, identity)){
         cerr<<"Cannot begin session with server"<<endl;
         exit(-3);
     }

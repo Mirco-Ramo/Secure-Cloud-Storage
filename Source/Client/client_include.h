@@ -8,6 +8,7 @@
 #endif //SECURE_CLOUD_STORAGE_CLIENT_INCLUDE_H
 
 #include "../Common_Libs/common_parameters.h"
+#include "../Common_Libs/common_functions.h"
 
 /*              MACROS              */
 #define SERVER_ADDRESS "127.0.0.1"

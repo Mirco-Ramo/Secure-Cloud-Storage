@@ -10,33 +10,37 @@
 /*      OPCODES     */
 
 
-#define REQ_OK              0
+#define NO_OPCODE           0
 
+//REQUEST OPCODES
 #define AUTH_INIT           1
-#define AUTH                2
-#define LIST                3
-#define UPLOAD_INIT         4
-#define UPLOAD_REQ          5
-#define UPLOAD_CHUNK        6
-#define RENAME_REQ          7
-#define RENAME              8
-#define DOWNLOAD_REQ        9
-#define DOWNLOAD            10
-#define DOWNLOAD_ACCEPT     11
-#define DELETE_REQ          12
-#define DELETE              13
-#define LOGOUT_REQ          14
-#define LOGOUT              15
+#define LIST                2
+#define DOWNLOAD            3
+#define UPLOAD_REQ          4
+#define UPLOAD_DATA         5
+#define RENAME              9
+#define DELETE              10
+#define LOGOUT              11
 
-#define WRONG_FORMAT        16
-#define MISSING_USER        17
-#define MAC_FAIL            18
-#define DUP_NAME            19
-#define INVALID_FILENAME    20
-#define MISSING_LIST        21
-#define MISSING_FILE        22
-#define INVALID_LIST        23
+//RESPONSE OPCODES
+#define AUTH_RESPONSE       20
+#define LIST_RES            21
+#define LIST_DATA           22
+#define DOWNLOAD_RES        23
+#define DOWNLOAD_DATA       24
+#define UPLOAD_RES          25
+#define UPLOAD_ACK          26
+#define RENAME_RES          27
+#define DELETE_RES          28
+#define LOGOUT_RES          29
 
+//OUTCOME OPCODES(Encrypted)
+#define REQ_OK             200
+#define WRONG_FORMAT        51
+#define MISSING_USER        52
+#define INVALID_FILENAME    53
+#define MISSING_FILE        54
+#define DUP_NAME            55
 
 struct fixed_header{
     unsigned char initialization_vector[IV_LENGTH];

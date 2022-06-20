@@ -10,7 +10,10 @@ message* build_message(unsigned char* iv, unsigned char opcode,
                        unsigned int payload_length, unsigned char* payload, bool hmac){
 
     fixed_header* h=new fixed_header();
-    memcpy(h->initialization_vector, iv, IV_LENGTH);
+    if(!iv)
+        memset(h->initialization_vector,0,IV_LENGTH);
+    else
+        memcpy(h->initialization_vector, iv, IV_LENGTH);
     h->opcode = opcode;
     h->payload_length = payload_length;
     message* m = new message();

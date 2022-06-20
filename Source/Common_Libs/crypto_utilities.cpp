@@ -32,7 +32,11 @@ bool command_ok(const string& command){
     }
     return true;
 }
-
+/*                          GENERATE RANDOM IV                          */
+int generate_random_iv(unsigned char* &iv, const int iv_length){
+    RAND_poll();
+    return RAND_bytes(iv, iv_length);
+}
 
 
 /*                          DIFFIE-HELLMAN KEY EXCHANGE                 */
@@ -161,21 +165,21 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
     if(ret <= 0){
         cerr<<"Cannot initialize context to derive shared key"<<endl;
         EVP_PKEY_CTX_free(derive_ctx);
-        return 0;
+        return -8;
     }
 
     ret = EVP_PKEY_derive_set_peer(derive_ctx, peer_pubkey);
     if(ret <= 0){
         cerr<<"Cannot set public key of server to derive shared key"<<endl;
         EVP_PKEY_CTX_free(derive_ctx);
-        return 0;
+        return -7;
     }
 
     ret = EVP_PKEY_derive(derive_ctx, NULL, &skeylen);
     if(ret <= 0){
         cerr<<"Cannot obtain max shared key length"<<endl;
         EVP_PKEY_CTX_free(derive_ctx);
-        return 0;
+        return -6;
     }
 
     skey = (unsigned char*)(malloc(int(skeylen)));
@@ -195,7 +199,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
 #pragma optimize("", on)
 
         free(skey);
-        return 0;
+        return -5;
     }
 
     EVP_PKEY_CTX_free(derive_ctx);
@@ -209,7 +213,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
 #pragma optimize("", on)
 
         free(skey);
-        return 0;
+        return -4;
     }
 
     //allocare memoria per il digest
@@ -238,7 +242,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
 
         free(skey);
         free(digest);
-        return 0;
+        return -1;
     }
 
     ret=EVP_DigestUpdate(hash_context, (unsigned char*) skey, skeylen);
@@ -252,7 +256,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
 
         free(skey);
         free(digest);
-        return 0;
+        return -2;
     }
 
     ret=EVP_DigestFinal(hash_context,digest,&digest_len);
@@ -266,7 +270,7 @@ int generate_dh_session_key(EVP_PKEY* my_dhkey,EVP_PKEY* peer_pubkey,unsigned ch
 
         free(skey);
         free(digest);
-        return 0;
+        return -3;
     }
 
     EVP_MD_CTX_free(hash_context);
@@ -358,20 +362,19 @@ EVP_PKEY* extract_dh_pubkey(EVP_PKEY* my_dhkey){
     EVP_PKEY* dh_pubkey;
     int ret;
 
-    //Bio temporaneo
     BIO* tmp = BIO_new(BIO_s_mem());
     if(!tmp){
         cerr<<"Error on instantiate BIO element\n";
         return NULL;
     }
-    //Scrittura chiave publica DH
+
     ret = PEM_write_bio_PUBKEY(tmp, my_dhkey);
     if(ret == 0){
         cerr << "Error on PEM_write_bio_PUBKEY\n";
         BIO_free(tmp);
         return NULL;
     }
-    //Lettura chiave pubblica DH
+
     dh_pubkey = PEM_read_bio_PUBKEY(tmp, NULL, NULL, NULL);
     if(!dh_pubkey){
         cerr << "Error on PEM_read_bio_PUBKEY\n";
@@ -384,7 +387,7 @@ EVP_PKEY* extract_dh_pubkey(EVP_PKEY* my_dhkey){
     return dh_pubkey;
 }
 
-int sencode_EVP_PKEY (EVP_PKEY* to_encode, unsigned char* &buffer, unsigned short& buf_size){
+int encode_EVP_PKEY (EVP_PKEY* to_encode, unsigned char* &buffer, unsigned short& buf_size){
     int ret;
     unsigned char* tmp_buf;
     BIO* mem_bio = BIO_new(BIO_s_mem());
@@ -409,7 +412,10 @@ int sencode_EVP_PKEY (EVP_PKEY* to_encode, unsigned char* &buffer, unsigned shor
         return 0;
     }
     memcpy(buffer,tmp_buf,buf_size);
-
+#pragma optimize("", off)
+    memset(tmp_buf, 0, buf_size);
+#pragma optimize("", on)
+    free(tmp_buf);
     BIO_free(mem_bio);
 
     return 1;
@@ -744,7 +750,7 @@ X509* decode_certificate (unsigned char* to_deserialize, unsigned short buffer_l
 
 /*                  HMAC                        */
 
-int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned short& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number){
+unsigned int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned short& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number){
     unsigned short total_input_len;
     for(unsigned short i=0; i<inputs_number; ++i){
         total_input_len += input_lengths[i];
