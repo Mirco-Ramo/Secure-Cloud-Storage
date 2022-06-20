@@ -13,6 +13,7 @@ bool Worker::establish_session() {
     if(ret<=0)
         return false;
     client_pub_dhkey = decode_EVP_PKEY(m1->payload,m1->header.payload_length);
+    delete m1;
 
     //generate s
     EVP_PKEY* server_dhkey = NULL;
@@ -33,9 +34,9 @@ bool Worker::establish_session() {
     }
 
     //derive session key, hmac_key
-    unsigned char *session_key, *kmac;
+    unsigned char *sess_key, *kmac;
     unsigned short key_len = KEY_LEN, kmac_len = HMAC_KEY_LEN;
-    ret = generate_dh_session_key(server_dhkey,client_pub_dhkey,session_key, key_len, kmac, kmac_len);
+    ret = generate_dh_session_key(server_dhkey,client_pub_dhkey,sess_key, key_len, kmac, kmac_len);
     EVP_PKEY_free(server_dhkey);
     if(ret == 0){
         cerr<<"["+identity+"]: "<<"Session key generation failed for a buffer error"<<endl;
@@ -49,8 +50,10 @@ bool Worker::establish_session() {
         EVP_PKEY_free(client_pub_dhkey);
         return false;
     }
-    memcpy(this->session_key, session_key, KEY_LEN);
+    memcpy(this->session_key, sess_key, KEY_LEN);
     memcpy(this->hmac_key, kmac, HMAC_KEY_LEN);
+    free(sess_key);
+    free(kmac);
 
     //prepare M2
     unsigned short encoded_client_pub_dhkey_len;
@@ -65,7 +68,7 @@ bool Worker::establish_session() {
         return false;
     }
     if(!encode_EVP_PKEY(client_pub_dhkey, encoded_client_pub_dhkey, encoded_client_pub_dhkey_len)){
-        cerr<<"["+identity+"]: "<<"Cannot encode server dh pub key"<<endl;
+        cerr<<"["+identity+"]: "<<"Cannot encode client dh pub key"<<endl;
         EVP_PKEY_free(server_dhkey);
         EVP_PKEY_free(server_pub_dhkey);
         EVP_PKEY_free(client_pub_dhkey);
@@ -73,8 +76,9 @@ bool Worker::establish_session() {
         return false;
     }
     //sign g^u, g^s
+
     EVP_PKEY* server_privkey;
-    if (!read_privkey(server_privkey, "../../Keys/Server/server_prv_key.pem")){
+    if (!read_privkey(server_privkey, "../Keys/Server/server_prv_key.pem")){
         cerr<<"["+identity+"]: "<<"Cannot read server private key"<<endl;
         EVP_PKEY_free(server_pub_dhkey);
         EVP_PKEY_free(client_pub_dhkey);
@@ -121,7 +125,7 @@ bool Worker::establish_session() {
         free(signature_buffer);
         return false;
     }
-    if(generate_random_iv(IV_buffer, IV_LENGTH!=1)){
+    if(generate_random_iv(IV_buffer, IV_LENGTH)!=1){
         cerr<<"["+identity+"]: "<<"Cannot generate random IV"<<endl;
         EVP_PKEY_free(server_pub_dhkey);
         EVP_PKEY_free(client_pub_dhkey);
@@ -152,7 +156,7 @@ bool Worker::establish_session() {
     }
 
     //certificate loading
-    X509* certificate = read_certificate("../../Keys/Server/server_cert.pem");
+    X509* certificate = read_certificate("../Keys/Server/Server_cert.pem");
     if(certificate == NULL){
         cerr<<"["+identity+"]: "<<"Cannot read input certificate"<<endl;
         EVP_PKEY_free(server_pub_dhkey);
@@ -192,7 +196,7 @@ bool Worker::establish_session() {
 
     //prepare message M2. In the payload, for each field, we also communicate the field size
     unsigned int m2_payload_len = encoded_server_pub_dhkey_len + enc_signature_buffer_len + ser_certificate_len;
-    unsigned char* m2_payload = (unsigned char*)malloc(m2_payload_len);
+    unsigned char* m2_payload = (unsigned char*)malloc(m2_payload_len+ 3*sizeof(unsigned short));
     if(!m2_payload){
         cerr<<"["+identity+"]: "<<"Cannot allocate buffer for m2"<<endl;
         EVP_PKEY_free(server_pub_dhkey);
@@ -260,7 +264,7 @@ bool Worker::establish_session() {
     free(enc_signature_buffer);
     X509_free(certificate);
     free(serialized_certificate);
-    free(m2_payload);
+    delete m2;
     return true;
 }
 

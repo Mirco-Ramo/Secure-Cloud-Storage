@@ -32,21 +32,18 @@ bool begin_session(int socket_id, const string& username, const string& identity
     }
     message* m1;
     m1 = build_message(NULL, AUTH_INIT, encoded_client_pub_dhkey_len, encoded_client_pub_dhkey, false);
+    EVP_PKEY_free(client_dhkey);
     if(send_msg(socket_id, m1, false, identity) < encoded_client_pub_dhkey_len+FIXED_HEADER_LENGTH){
         cerr<<"Cannot send pub key to server"<<endl;
-        EVP_PKEY_free(client_dhkey);
         EVP_PKEY_free(client_pub_dhkey);
-#pragma optimize("", off)
-        memset(encoded_client_pub_dhkey, 0, encoded_client_pub_dhkey_len);
-#pragma optimize("", on)
         free(encoded_client_pub_dhkey);
         return false;
     }
+    delete m1;
+    //free(encoded_client_pub_dhkey);
 
-#pragma optimize("", off)
-    memset(encoded_client_pub_dhkey, 0, encoded_client_pub_dhkey_len);
-#pragma optimize("", on)
-    free(encoded_client_pub_dhkey);
+    message* m2 = new message();
+    recv_msg(socket_id, m2, false, identity);
     return true;
 }
 

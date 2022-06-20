@@ -132,12 +132,12 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     ret = recv(socket_id,(void*)buffer_message, FIXED_HEADER_LENGTH,0);
     if(ret <= 0){
         free(buffer_message);
-        cout << "["+identity+"]:"<< "Cannot receive data from client" << endl;
+        cout << "["+identity+"]:"<< "Cannot receive data from peer" << endl;
         return -1;
     }
     if(ret < FIXED_HEADER_LENGTH){
         free(buffer_message);
-        cout << "["+identity+"]:"<< "Failed to receive data from client" << endl;
+        cout << "["+identity+"]:"<< "Failed to receive data from peer" << endl;
         return -1;
     }
 
@@ -199,5 +199,6 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     }
 
     memcpy(msg->hmac, buffer_hmac, DIGEST_LEN);
+    free(buffer_hmac);
     return FIXED_HEADER_LENGTH + payload_length + ret;
 }

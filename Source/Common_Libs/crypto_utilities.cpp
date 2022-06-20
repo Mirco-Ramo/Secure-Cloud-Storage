@@ -413,7 +413,6 @@ int encode_EVP_PKEY (EVP_PKEY* to_encode, unsigned char* &buffer, unsigned short
 #pragma optimize("", off)
     memset(tmp_buf, 0, buf_size);
 #pragma optimize("", on)
-    free(tmp_buf);
     BIO_free(mem_bio);
 
     return 1;

@@ -30,59 +30,9 @@ void* Worker::handle_commands_helper(void *context)
 void* Worker::handle_commands() {
     if(!establish_session())
         handleErrors("["+identity+"]: Fatal error: cannot perform key exchange protocol with client", 10);
-    logout_request = true;
-    while(!this->logout_request){
-        cout<<"Listening for requests"<<endl;
-        message* m = new message();
-        int ret = recv_msg(this->socket_id, m, false, this->identity);
-        cout<<"Return value was: "<<ret<<endl;
-        cout<<"Payload length is: "<<m->header.payload_length<<endl;
 
-        string payload = (const char*)m->payload;
-        cout<<"You wrote: "<<payload<<endl;
+    cout<<"Yeeee, you did it!"<<endl;
 
-        if(m->header.payload_length>30)
-            logout_request=true;
-
-        unsigned char* iv_buf = (unsigned char*)malloc(IV_LENGTH*sizeof(unsigned char));
-        unsigned char opcode='d';
-        for(int i=0; i<IV_LENGTH*sizeof(unsigned char); i+=sizeof(unsigned char)){
-            *(iv_buf+i)=(unsigned char)(opcode+i);
-        }
-        free(m->payload);
-        char* hello_msg = "Hello to you, my kind client!\n";
-        cout<<"I send you: "<<hello_msg<<endl;
-        m = build_message(iv_buf, opcode, strlen(hello_msg)+1, (unsigned char *)(hello_msg), false);
-        send_msg(this->socket_id, m, false, identity);
-
-        //TODO wait for command
-
-        /*
-        message msg = {};
-        int ret = recv_msg_from_client(this->socket_id, &msg);
-        if(ret <= 0){
-            cout << "Worker for: " << this->username << ". Failed to receive message " << msg.header.opcode << msg.header.seq_number <<endl;
-            free(&msg);
-            continue;
-        }
-        //TODO call relative function
-        switch(msg.header.opcode){
-            case LIST:
-                handle_list();
-            case UPLOAD_INIT:
-                handle_upload();
-            case RENAME_REQ:
-                handle_rename();
-            case DOWNLOAD_REQ:
-                handle_download();
-            case DELETE_REQ:
-                handle_delete();
-            case LOGOUT_REQ:
-                handle_logout();
-        }
-         */
-    }
-    //TODO call logout
     delete this;
     return 0;
 }

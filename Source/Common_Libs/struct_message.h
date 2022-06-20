@@ -52,6 +52,13 @@ struct message{
     fixed_header header;
     unsigned char* payload;
     unsigned char hmac[DIGEST_LEN];
+
+    ~message(){
+#pragma optimize("", off)
+        memset(payload, 0, header.payload_length);
+#pragma optimize("", on)
+        free(payload);
+    }
 };
 
 #endif //SECURE_CLOUD_STORAGE_STRUCT_MESSAGE_H

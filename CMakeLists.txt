@@ -9,6 +9,7 @@ SET(CMAKE_CXX_FLAGS -pthread)
 include_directories(Source/Client)
 include_directories(Source/Server)
 include_directories(Source/Common_Libs)
+include_directories(Keys/Server)
 
 add_executable(Server Source/Server/server_main.cpp
         Source/Common_Libs/common_parameters.h
