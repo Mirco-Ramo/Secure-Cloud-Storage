@@ -107,12 +107,12 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     if(ret <= 0){
         free(buffer_message);
         cout << "["+identity+"]:"<< "Cannot receive data from client" << endl;
-        return ret;
+        return -1;
     }
     if(ret < FIXED_HEADER_LENGTH){
         free(buffer_message);
         cout << "["+identity+"]:"<< "Failed to receive data from client" << endl;
-        return ret;
+        return -1;
     }
 
     //deserialize header
@@ -154,7 +154,7 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     if(ret < payload_length){
         free(buffer_message);
         cout << "["+identity+"]:"<< "Payload receive failed" << endl;
-        return ret;
+        return -1;
     }
 
     msg->payload = buffer_message;
@@ -171,7 +171,7 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     if(ret < DIGEST_LEN){
         free(buffer_hmac);
         cout << "["+identity+"]:"<< "Hmac receive failed" << endl;
-        return ret;
+        return -1;
     }
 
     memcpy(msg->hmac, buffer_hmac, DIGEST_LEN);

@@ -12,7 +12,7 @@
 /*              CONNECTION FUNCTIONS            */
 int connect_to_server(sockaddr_in* server_addr, int* client_socket);
 void shutdown(int received_signal);
-bool begin_session(int socket_id);
+bool begin_session(int socket_id, const string& username, const string& identity);
 
 
 /*              LOGIC FUNCTIONS                    */

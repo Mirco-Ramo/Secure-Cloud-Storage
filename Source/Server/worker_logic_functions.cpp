@@ -12,13 +12,21 @@ Worker::Worker(int socket_id) {
     this->identity = "Worker for: "+this->username;
 }
 
+void Worker::handleErrors(const string& reason, int exit_code){
+    cerr<<reason<<endl;
+    if (exit_code)
+        exit(exit_code);
+}
+
 void* Worker::handle_commands_helper(void *context)
 {
     return ((Worker *)context)->handle_commands();
 }
 
 void* Worker::handle_commands() {
-    //TODO call key exchange
+    if(!establish_session())
+        handleErrors("["+identity+"]: Fatal error: cannot perform key exchange protocol with client", 10);
+    logout_request = true;
     while(!this->logout_request){
         cout<<"Listening for requests"<<endl;
         message* m = new message();

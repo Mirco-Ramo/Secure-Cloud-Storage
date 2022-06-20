@@ -41,5 +41,7 @@ public:
     /*          DESTRUCTORS         */
     ~Worker(); //destroy every sensible information, like exchanged keys
 
+    /*          UTILS               */
+    void handleErrors(const string& reason, int exit_code);
 };
 #endif //SECURE_CLOUD_STORAGE_WORKER_H
