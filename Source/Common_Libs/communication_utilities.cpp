@@ -66,7 +66,7 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
     for(int len_left=(PAYLOAD_LENGTH_LEN-sizeof(unsigned char)); len_left>=0; len_left--){
         unsigned int a = (msg->header.payload_length>>(len_left*8));
         unsigned char byte = (unsigned char)(a);
-        memcpy(buffer_payload, &byte, sizeof(unsigned char));
+        memcpy(buffer_payload+(PAYLOAD_LENGTH_LEN-(len_left+1)), &byte, sizeof(unsigned char));
     }
     memcpy(buffer_message+total_serialized, buffer_payload, PAYLOAD_LENGTH_LEN);
     total_serialized+=PAYLOAD_LENGTH_LEN;
@@ -127,8 +127,6 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
         p = *(buffer_message+read_so_far+i);
         payload_length = (payload_length<<8) | p;
     }
-    payload_length = (payload_length<<8);
-    payload_length = ntohl(payload_length);
 
     //check payload length
     if(payload_length>MAX_PAYLOAD_LENGTH){

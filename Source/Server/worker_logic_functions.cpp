@@ -14,8 +14,10 @@ Worker::Worker(int socket_id) {
 
 void Worker::handleErrors(const string& reason, int exit_code){
     cerr<<reason<<endl;
-    if (exit_code)
+    if (exit_code) {
+        delete this;
         exit(exit_code);
+    }
 }
 
 void* Worker::handle_commands_helper(void *context)
@@ -137,7 +139,7 @@ void Worker::handle_logout() {
 }
 
 Worker::~Worker() {
-    //TODO
+    close(this->socket_id);
 }
 
 
