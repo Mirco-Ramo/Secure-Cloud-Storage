@@ -120,7 +120,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
     }
     allocatedBuffers.push_back({EVP_PKEY_BUF, server_pubkey});
 
-    unsigned short clear_signature_len;
+    unsigned int clear_signature_len;
     unsigned char* clear_signature;
 
     ret = symm_decrypt(encoded_server_signature->field, encoded_server_signature->field_len,
@@ -204,7 +204,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
     current_len += sizeof(unsigned short);
     memcpy(m3_clear_payload + current_len,username.c_str(),username_characters);
 
-    unsigned short encrypted_m3_payload_len;
+    unsigned int encrypted_m3_payload_len;
     unsigned char* encrypted_m3_payload;
     if(symm_encrypt(m3_clear_payload,m3_clear_payload_len,session_key,
                     IV_buffer,encrypted_m3_payload,encrypted_m3_payload_len)!=1){
@@ -220,6 +220,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
         clean_all();
         return false;
     }
+    clean_all();
 
     return true;
 }

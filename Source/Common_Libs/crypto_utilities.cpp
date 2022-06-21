@@ -449,7 +449,7 @@ EVP_PKEY* decode_EVP_PKEY (unsigned char* to_decode, unsigned short buffer_len){
 
 
 /*          SYMMETRIC ENCRYPTION        */
-int symm_encrypt(unsigned char* clear_buf, unsigned short clear_size, unsigned char* session_key, unsigned char* IV, unsigned char*& enc_buf, unsigned short& cipherlen){
+int symm_encrypt(unsigned char* clear_buf, unsigned int clear_size, unsigned char* session_key, unsigned char* IV, unsigned char*& enc_buf, unsigned int& cipherlen){
     int outlen;
     int ret;
     EVP_CIPHER_CTX* ctx;
@@ -503,7 +503,7 @@ int symm_encrypt(unsigned char* clear_buf, unsigned short clear_size, unsigned c
 }
 
 
-int symm_decrypt(unsigned char* enc_buf, unsigned short enc_size, unsigned char* session_key, unsigned char* IV, unsigned char*& clear_buf, unsigned short& clearlen){
+int symm_decrypt(unsigned char* enc_buf, unsigned int enc_size, unsigned char* session_key, unsigned char* IV, unsigned char*& clear_buf, unsigned int& clearlen){
     int outlen;
     int ret;
     EVP_CIPHER_CTX* ctx;
@@ -831,7 +831,7 @@ X509* decode_certificate (unsigned char* to_deserialize, unsigned short buffer_l
 
 /*                  HMAC                        */
 
-unsigned int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned short& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number){
+unsigned int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned int& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number){
     unsigned short total_input_len;
     for(unsigned short i=0; i<inputs_number; ++i){
         total_input_len += input_lengths[i];
@@ -852,7 +852,7 @@ unsigned int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned short& 
 }
 
 
-int compute_hmac(unsigned char* payload, unsigned short payload_len, unsigned char*& hmac_digest,unsigned char* hmac_key){
+int compute_hmac(unsigned char* payload, unsigned int payload_len, unsigned char*& hmac_digest,unsigned char* hmac_key){
     HMAC_CTX* hmac_ctx;
     int ret;
     unsigned int outlen;
@@ -905,7 +905,7 @@ int compute_hmac(unsigned char* payload, unsigned short payload_len, unsigned ch
     return 1;
 }
 
-int verify_hmac(unsigned char* digest, unsigned char* payload, unsigned short payload_len,unsigned char* hmac_key){
+int verify_hmac(unsigned char* digest, unsigned char* payload, unsigned int payload_len,unsigned char* hmac_key){
     unsigned char* computed_digest;
     int ret;
 

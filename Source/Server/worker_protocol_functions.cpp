@@ -4,13 +4,35 @@
 
 #include "worker.h"
 
+bool Worker::send_failure_message(unsigned char reason, unsigned char opcode){
+    message* failure_message;
+
+    unsigned char* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
+    if(!IV_buffer){
+        cerr<<"Cannot allocate buffer for IV"<<endl;
+        return false;
+    }
+
+    unsigned char* encrypted_reason;
+    unsigned int encrypted_reason_len;
+    if(symm_encrypt(&reason,sizeof(unsigned char),session_key,
+                    IV_buffer,encrypted_reason,encrypted_reason_len)!=1){
+        cerr<<"Cannot encrypt signed parameters and username"<<endl;
+        free(IV_buffer);
+        return false;
+    }
+    failure_message = build_message(IV_buffer, opcode, encrypted_reason_len, encrypted_reason, true, hmac_key, this->worker_counter);
+    send_msg(socket_id, failure_message, true, identity);
+    return true;
+}
+
 bool Worker::establish_session() {
     int ret;
     //M1: receive client's g^u mod p
     message* m1 = new message();
     EVP_PKEY* client_pub_dhkey;
     ret = recv_msg(this->socket_id, m1, false, this->identity);
-    if(ret<=0)
+    if(ret<=0 || m1->header.opcode!=AUTH_INIT)
         return false;
     client_pub_dhkey = decode_EVP_PKEY(m1->payload,m1->header.payload_length);
     delete m1;
@@ -111,7 +133,7 @@ bool Worker::establish_session() {
     allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer});
 
     //g^u, g^s encryption
-    unsigned short enc_signature_buffer_len;
+    unsigned int enc_signature_buffer_len;
     unsigned char* enc_signature_buffer;
     if(symm_encrypt(signature_buffer,signature_len,this->session_key,
                   IV_buffer,enc_signature_buffer,enc_signature_buffer_len)!=1){
@@ -170,16 +192,101 @@ bool Worker::establish_session() {
         clean_all();
         return false;
     }
-    free(encoded_server_pub_dhkey);
-    free(encoded_client_pub_dhkey);
+
     EVP_PKEY_free(server_privkey);
-    free(to_sign_buffer);
     free(signature_buffer);
     free(IV_buffer);
     free(enc_signature_buffer);
     X509_free(certificate);
     free(serialized_certificate);
     delete m2;
+
+    message* m3 = new message();
+    if(recv_msg(socket_id, m3, false, identity)<=0){
+        cerr<<"["+identity+"]: "<<"Cannot receive M3 from client"<<endl;
+        clean_all();
+        return false;
+    }
+    unsigned char* decrypted_payload;
+    unsigned int decrypted_len;
+    ret = symm_decrypt(m3->payload, m3->header.payload_length,
+                       this->session_key, m3->header.initialization_vector,decrypted_payload,decrypted_len);
+    if(ret==0){
+        cerr<<"["+identity+"]: "<<"Cannot decrypt m3 payload"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, decrypted_payload, decrypted_len});
+
+    payload_field* signed_pub_dh_keys;
+    payload_field* recv_username;
+    unsigned short num_fields = 2;
+    payload_field* fields[] = {signed_pub_dh_keys, recv_username};
+    if(!get_payload_fields(decrypted_payload, fields, num_fields)){
+
+    }
+
+    string str_username((const char*)recv_username->field, recv_username->field_len);
+    if(!check_username(string(str_username))){
+        cerr<<"["+identity+"]: "<<"Username does not satisfy constraints"<<endl;
+        send_failure_message(MISSING_USER, AUTH_RESPONSE);
+        clean_all();
+        return false;
+    }
+
+    this->username = str_username;
+    this->identity = "Worker for: "+this->username;
+
+
+    EVP_PKEY* client_pubkey;
+    if (!read_privkey(client_pubkey, string("../Keys/Server/Client_Pub_Keys/" + str_username + "_pubkey"))){
+        cerr<<"["+identity+"]: "<<"Cannot read client public key"<<endl;
+        send_failure_message(MISSING_USER, AUTH_RESPONSE);
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({EVP_PKEY_BUF, server_privkey});
+
+
+    //contextually, checks that signed parameters are actually g^u and g^s
+    unsigned short groundtruth_len = to_sign_buf_len;
+    unsigned char* groundtruth_fields = to_sign_buffer;     //groundtruth are the same parameters server signed in m2
+    ret = verify_signature(signed_pub_dh_keys->field,signed_pub_dh_keys->field_len,
+                           groundtruth_fields,groundtruth_len,
+                           client_pubkey);
+    if(ret<=0){
+        cerr<<"Unable to verify signature"<<endl;
+        clean_all();
+        return false;
+    }
+
+
+    unsigned char clear_resp = REQ_OK;
+    IV_buffer = (unsigned char*)malloc(IV_LENGTH);
+    if(!IV_buffer){
+        cerr<<"["+identity+"]: "<<"Cannot allocate buffer for IV"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer});
+
+    //g^u, g^s encryption
+    unsigned int enc_buffer_len;
+    unsigned char* enc_buffer;
+    if(symm_encrypt(&clear_resp,sizeof(unsigned char),this->session_key,
+                    IV_buffer,enc_buffer,enc_buffer_len)!=1){
+        cerr<<"["+identity+"]: "<<"Cannot encrypt response"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({ENC_BUFFER, enc_buffer});
+
+    message* m4;
+    m4 = build_message(IV_buffer, AUTH_RESPONSE, enc_buffer_len, enc_buffer, true, this->hmac_key);
+    send_msg(this->socket_id, m4, true, identity);
+    delete m3;
+    delete m4;
+    clean_all();
     return true;
 }
 

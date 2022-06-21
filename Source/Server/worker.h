@@ -43,5 +43,6 @@ public:
 
     /*          UTILS               */
     void handleErrors(const string& reason, int exit_code);
+    bool send_failure_message(unsigned char reason, unsigned char opcode);
 };
 #endif //SECURE_CLOUD_STORAGE_WORKER_H

@@ -21,7 +21,7 @@ message* build_message(unsigned char* iv, unsigned char opcode,
     m->payload = payload;
     if(hmac){
         unsigned char* buffer_mac;
-        unsigned short buffer_mac_len;
+        unsigned int buffer_mac_len;
 
         unsigned char payload_len_bytes[PAYLOAD_LENGTH_LEN];
         unsigned char counter_bytes[sizeof(unsigned int)];

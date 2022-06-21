@@ -11,7 +11,7 @@ enum types {EVP_PKEY_BUF, PKEY_CONTEXT, CLEAR_BUFFER, ENC_BUFFER, BIO_BUF, MD_CO
 struct buffer{
     types type;
     void* content;
-    unsigned short nbytes;
+    unsigned int nbytes;
 };
 
 #endif //SECURE_CLOUD_STORAGE_BUFFERS_H
