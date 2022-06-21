@@ -8,7 +8,7 @@
 #endif //SECURE_CLOUD_STORAGE_COMMON_PARAMETERS_H
 
 #define MAX_FILENAME_CHARS 30
-#define MAX_USERNAME_CHARS 20
+#define MAX_USERNAME_LEN 20
 
 #define CIPHER              EVP_aes_128_cbc()
 #define IV_LENGTH           16 //(unsigned int)EVP_CIPHER_iv_length(CIPHER)

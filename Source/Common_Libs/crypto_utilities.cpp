@@ -480,7 +480,6 @@ int symm_encrypt(unsigned char* clear_buf, unsigned short clear_size, unsigned c
         return 0;
     }
 
-    //TODO adapt with cycles
     ret = EVP_EncryptUpdate(ctx, enc_buf,&outlen, clear_buf, clear_size);
     if(ret != 1){
         cerr << "Error: EVP_EncryptUpdate returned " << ret << "\n";
@@ -527,7 +526,6 @@ int symm_decrypt(unsigned char* enc_buf, unsigned short enc_size, unsigned char*
         free(clear_buf);
         return 0;
     }
-    //TODO adapt cycles
     ret = EVP_DecryptUpdate(ctx, clear_buf, &outlen, enc_buf, enc_size);
     if(ret != 1){
         cerr << "Error: EVP_DecryptUpdate returned " << ret << "\n";

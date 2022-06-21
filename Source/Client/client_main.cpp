@@ -9,7 +9,11 @@
 int client_socket;
 string username;
 string identity;
-bool exit_flag = false;
+vector<buffer> allocatedBuffers;
+unsigned char session_key[KEY_LEN];
+unsigned char hmac_key[HMAC_KEY_LEN];
+unsigned int client_counter;
+unsigned int server_counter;
 
 int main(int argc, char** argv) {
     sockaddr_in server_addr;

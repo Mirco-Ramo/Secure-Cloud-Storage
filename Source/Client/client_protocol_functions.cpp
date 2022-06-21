@@ -4,6 +4,12 @@
 #include "client_include.h"
 #include "client_functions.h"
 
+extern vector<buffer> allocatedBuffers;
+extern unsigned char hmac_key[];
+extern unsigned char session_key[];
+extern unsigned int client_counter;
+extern unsigned int server_counter;
+extern int username;
 
 bool begin_session(int socket_id, const string& username, const string& identity){
     int ret;
@@ -39,6 +45,8 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
     delete m1;
+
+    //HANDLE M2
 
     message* m2 = new message();
     if(recv_msg(socket_id, m2, false, identity)<=0){
@@ -124,25 +132,95 @@ bool begin_session(int socket_id, const string& username, const string& identity
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, clear_signature});
 
-    //sign verification
-    unsigned short clear_len = encoded_client_pub_dhkey_len + encoded_server_pub_dhkey->field_len;
-    unsigned char* clear_fields = (unsigned char*)malloc(clear_len);
-    if(!clear_fields){
+    //sign verification, return true only if the message was signed using server's pub key, and only if it actually signed g^u and g^s
+    unsigned short groundtruth_len = encoded_client_pub_dhkey_len + encoded_server_pub_dhkey->field_len;
+    auto* groundtruth_fields = (unsigned char*)malloc(groundtruth_len);
+    if(!groundtruth_fields){
         cerr<<"Cannot allocate buffer to verify signature"<<endl;
         clean_all();
         return false;
     }
-    allocatedBuffers.push_back({CLEAR_BUFFER, clear_fields});
-    memcpy(clear_fields,encoded_client_pub_dhkey,encoded_client_pub_dhkey_len);
-    memcpy(clear_fields + encoded_client_pub_dhkey_len, encoded_server_pub_dhkey->field,encoded_server_pub_dhkey->field_len);
-    ret = verify_signature(clear_signature,clear_signature_len,clear_fields,clear_len,
+    allocatedBuffers.push_back({CLEAR_BUFFER, groundtruth_fields});
+    memcpy(groundtruth_fields,encoded_client_pub_dhkey,encoded_client_pub_dhkey_len);
+    memcpy(groundtruth_fields + encoded_client_pub_dhkey_len, encoded_server_pub_dhkey->field,encoded_server_pub_dhkey->field_len);
+    ret = verify_signature(clear_signature,clear_signature_len,groundtruth_fields,groundtruth_len,
                            server_pubkey);
     if(ret<=0){
         cerr<<"Unable to verify signature"<<endl;
         clean_all();
         return false;
     }
+
     delete m2;
+
+    // HANDLE M3
+    EVP_PKEY* client_privkey;
+    if (!read_privkey(client_privkey, string("../Keys/Client/") + username + string("_privkey.pem"))){
+        cerr<<"Cannot read" +string("../Keys/Client/") + username + string("_privkey.pem") <<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({EVP_PKEY_BUF, client_privkey});
+
+    unsigned int client_signed_len;
+    unsigned char* client_signed_buffer;
+    unsigned short to_sign_len = groundtruth_len;
+    unsigned char* to_sign = groundtruth_fields;
+
+    ret = apply_signature(to_sign,to_sign_len,client_signed_buffer,client_signed_len,client_privkey);
+    if(ret==0){
+        cerr<<"Cannot apply signature to message"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, client_signed_buffer});
+
+    unsigned char* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
+    if(!IV_buffer){
+        cerr<<"Cannot allocate buffer for IV"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer});
+
+    //prepare message M3. In the payload, for each field, we also communicate the field size, then encrypt
+    unsigned short username_characters = username.size() + 1;
+    unsigned short m3_clear_payload_len = client_signed_len + username_characters + 2*sizeof(unsigned short);
+    auto* m3_clear_payload = (unsigned char*)malloc(m3_clear_payload_len+ 3*sizeof(unsigned short));
+    if(!m3_clear_payload){
+        cerr<<"["+identity+"]: "<<"Cannot allocate buffer for m3"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, m3_clear_payload, m3_clear_payload_len});
+    unsigned int current_len = 0;
+
+    memcpy(m3_clear_payload,&client_signed_len,sizeof(unsigned short));
+    current_len += sizeof(unsigned short);
+    memcpy(m3_clear_payload + current_len,client_signed_buffer,client_signed_len);
+    current_len += client_signed_len;
+
+    memcpy(m3_clear_payload + current_len,&username_characters,sizeof(unsigned short));
+    current_len += sizeof(unsigned short);
+    memcpy(m3_clear_payload + current_len,username.c_str(),username_characters);
+
+    unsigned short encrypted_m3_payload_len;
+    unsigned char* encrypted_m3_payload;
+    if(symm_encrypt(m3_clear_payload,m3_clear_payload_len,session_key,
+                    IV_buffer,encrypted_m3_payload,encrypted_m3_payload_len)!=1){
+        cerr<<"Cannot encrypt signed parameters and username"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({ENC_BUFFER, encrypted_m3_payload});
+
+    message* m3 = build_message(IV_buffer, NO_OPCODE, encrypted_m3_payload_len, encrypted_m3_payload, false);
+    if(send_msg(socket_id, m3, false, identity) < current_len+FIXED_HEADER_LENGTH){
+        cerr<<"["+identity+"]: "<<"Cannot send M2"<<endl;
+        clean_all();
+        return false;
+    }
+
     return true;
 }
 

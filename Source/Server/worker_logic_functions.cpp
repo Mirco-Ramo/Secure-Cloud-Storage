@@ -41,10 +41,10 @@ void Worker::handle_download() {
     //TODO
     //open file
     //counter=1
-    //for(file.begin;file.end;1MB)
+    //for(file.begin;file.end;16MB)
     //  read_chunck
     //  encrypt_chunck
-    //  build_message(iv, payload_length, counter, na, nb, true)
+    //  build_message(iv, payload_length, counter, na, nb, true, kmac, )
     //  send message
     //  counter++
 }

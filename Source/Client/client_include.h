@@ -15,7 +15,6 @@
 /*              MACROS              */
 #define SERVER_ADDRESS "127.0.0.1"
 #define SERVER_PORT 2210
-#define MAX_USERNAME_LEN 20
 
 
 #define PROMPT ">$ "
@@ -34,8 +33,3 @@
 /*              LIBRARIES           */
 
 using namespace std;
-vector<buffer> allocatedBuffers;
-unsigned char session_key[KEY_LEN];
-unsigned char hmac_key[HMAC_KEY_LEN];
-unsigned int client_counter;
-unsigned int server_counter;
