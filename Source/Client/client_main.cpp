@@ -49,6 +49,8 @@ int main(int argc, char** argv) {
     cout<<PROMPT << endl << PROMPT;
 
     bool logout_request = false;
+
+    //TODO change exit with clean-up
     while(!logout_request) {
         cout << "Please, enter a command (type HELP to see a list of commands available): " << endl << PROMPT;
         string command;
@@ -65,7 +67,10 @@ int main(int argc, char** argv) {
             cout << HELP_MESSAGE << endl << PROMPT;
         }
         else if(command == "LIST"){
-            handle_list();
+            if(!handle_list(client_socket, username, identity)){
+                cerr << "Error in contacting the server, disconnecting!" << endl;
+                exit(-1);
+            }
         }
         else if(command == "DOWNLOAD"){
             handle_download();

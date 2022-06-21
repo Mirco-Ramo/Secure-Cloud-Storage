@@ -45,4 +45,4 @@ X509* decode_certificate (unsigned char* to_deserialize, unsigned short buffer_l
 
 unsigned int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned int& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number);
 int compute_hmac(unsigned char* payload, unsigned int payload_len, unsigned char*& hmac_digest,unsigned char* hmac_key);
-int verify_hmac(unsigned char* digest, unsigned char* payload, unsigned int payload_len,unsigned char* hmac_key);
+int verify_hmac(message* m, unsigned int counter, unsigned char* hmac_key);

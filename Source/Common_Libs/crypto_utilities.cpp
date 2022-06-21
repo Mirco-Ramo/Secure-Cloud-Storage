@@ -905,22 +905,39 @@ int compute_hmac(unsigned char* payload, unsigned int payload_len, unsigned char
     return 1;
 }
 
-int verify_hmac(unsigned char* digest, unsigned char* payload, unsigned int payload_len,unsigned char* hmac_key){
-    unsigned char* computed_digest;
+int verify_hmac(message* m, unsigned int counter, unsigned char* hmac_key){
     int ret;
 
-    ret = compute_hmac(payload, payload_len, computed_digest, hmac_key);
+    unsigned char payload_len_bytes[PAYLOAD_LENGTH_LEN];
+    unsigned char counter_bytes[sizeof(unsigned int)];
+    for (int i=0; i<PAYLOAD_LENGTH_LEN; i++)
+        payload_len_bytes[i]=(unsigned char)(m->header.payload_length>>((PAYLOAD_LENGTH_LEN-1-i)*8));
+    for (int i=0; i<sizeof(unsigned int); i++)
+        counter_bytes[i]=(unsigned char)(counter>>((sizeof(unsigned int)-1-i)*8));
+
+    unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, m->header.payload_length, sizeof(unsigned int)};
+    unsigned char* inputs[] = {m->header.initialization_vector, &m->header.opcode, payload_len_bytes, m->payload, counter_bytes};
+    unsigned int inputs_number=5; //iv, opcode, payload_length, payload, counter
+    unsigned char* buffer_mac;
+    unsigned int buffer_mac_len;
+
+    if (prepare_buffer_for_hmac(buffer_mac, buffer_mac_len, inputs, input_lengths, inputs_number) != FIXED_HEADER_LENGTH + m->header.payload_length + sizeof(unsigned int)){
+        cerr<<"Impossible to create buffer for hmac: Message build aborted";
+        return -1;
+    }
+    unsigned char* computed_digest;
+    ret = compute_hmac(buffer_mac, buffer_mac_len, computed_digest, hmac_key);
     if(ret != 1){
-        cerr << "Error on hmac verify\n";
-        if(computed_digest)
+        cerr<<"Impossible to compute hmac: Message build aborted";
+        if (computed_digest)
             free(computed_digest);
         return ret;
     }
 
-    ret = CRYPTO_memcmp(computed_digest, digest, DIGEST_LEN);
+    ret = CRYPTO_memcmp(computed_digest, m->hmac, DIGEST_LEN);
 
     free(computed_digest);
-    if(ret != 0){ //Wrong digests
+    if (ret != 0) { //Wrong digests
         cerr << "The message results to be not authenticated\n";
         return -1;
     }
