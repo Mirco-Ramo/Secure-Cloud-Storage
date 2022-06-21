@@ -117,7 +117,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
 
     ret = symm_decrypt(encoded_server_signature->field, encoded_server_signature->field_len,
                        session_key, m2->header.initialization_vector,clear_signature,clear_signature_len);
-    if(ret==0)){
+    if(ret==0){
         cerr<<"Cannot decrypt signed m2 portion"<<endl;
         clean_all();
         return false;
