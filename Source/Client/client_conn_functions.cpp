@@ -19,12 +19,12 @@ int connect_to_server(sockaddr_in* server_addr, int* client_socket){
         return sock_number;
     *client_socket = sock_number;
 
-    //time-out attesa risposta server
-    //timeval timeout = {100,0};
-    //if (setsockopt(client_socket,SOL_SOCKET,SO_RCVTIMEO,(const char*) &timeout,sizeof(timeval))==-1)
-    //    return -1;
+    //time-out server
+    timeval timeout = {80,0};
+    if (setsockopt(sock_number,SOL_SOCKET,SO_RCVTIMEO,(const char*) &timeout,sizeof(timeval))==-1)
+        return -1;
 
-    //connessione al server
+    //connection to server
     return connect(sock_number,(struct sockaddr*)server_addr,sizeof(sockaddr_in));
 
 }
