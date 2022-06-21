@@ -23,7 +23,7 @@ add_executable(Server Source/Server/server_main.cpp
         Source/Server/worker_logic_functions.cpp
         Source/Server/worker_protocol_functions.cpp
         Source/Server/server_conn_functions.cpp
-        )
+        Source/Common_Libs/buffers.h)
 
 add_executable(Client Source/Client/client_main.cpp
         Source/Common_Libs/common_parameters.h
@@ -34,4 +34,4 @@ add_executable(Client Source/Client/client_main.cpp
         Source/Common_Libs/crypto_utilities.cpp
         Source/Client/client_conn_functions.cpp
         Source/Client/client_logic_functions.cpp
-        Source/Client/client_protocol_functions.cpp )
+        Source/Client/client_protocol_functions.cpp Source/Common_Libs/buffers.h)

@@ -1,5 +1,5 @@
 //
-// Created by mirco on 14/06/2022.
+// Created by Francesco del Turco, Mirco Ramo.
 //
 
 #ifndef SECURE_CLOUD_STORAGE_WORKER_H
@@ -18,8 +18,7 @@ class Worker {
     long client_counter;
     unsigned char session_key[KEY_LEN];
     unsigned char hmac_key[HMAC_KEY_LEN];
-    //user_nonce; ?
-    //my_nonce;   ?
+    vector<buffer> allocatedBuffers;
     //received_Command
 public:
     /*      CONSTRUCTOR         */
@@ -39,7 +38,8 @@ public:
     void handle_logout();
 
     /*          DESTRUCTORS         */
-    ~Worker(); //destroy every sensible information, like exchanged keys
+    void clean_all();
+    ~Worker();
 
     /*          UTILS               */
     void handleErrors(const string& reason, int exit_code);

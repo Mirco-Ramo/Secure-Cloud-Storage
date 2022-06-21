@@ -9,6 +9,7 @@
 
 #include "../Common_Libs/common_parameters.h"
 #include "../Common_Libs/common_functions.h"
+#include "../Common_Libs/buffers.h"
 #include <vector>
 
 /*                    CONSTANT MACROS                         */
