@@ -10,6 +10,7 @@
 #include "../Common_Libs/common_parameters.h"
 #include "../Common_Libs/common_functions.h"
 #include "../Common_Libs/buffers.h"
+#include <vector>
 
 /*              MACROS              */
 #define SERVER_ADDRESS "127.0.0.1"
@@ -33,3 +34,8 @@
 /*              LIBRARIES           */
 
 using namespace std;
+vector<buffer> allocatedBuffers;
+unsigned char session_key[KEY_LEN];
+unsigned char hmac_key[HMAC_KEY_LEN];
+unsigned int client_counter;
+unsigned int server_counter;

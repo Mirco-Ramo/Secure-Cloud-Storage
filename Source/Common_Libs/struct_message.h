@@ -61,4 +61,9 @@ struct message{
     }
 };
 
+struct payload_field{
+    unsigned short field_len;
+    unsigned char* field;
+};
+
 #endif //SECURE_CLOUD_STORAGE_STRUCT_MESSAGE_H

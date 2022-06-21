@@ -26,3 +26,4 @@ void handle_logout();
 
 /*              PROTOCOL AND CLEAN FUNCTIONS        */
 void clean_counters();
+void clean_all();

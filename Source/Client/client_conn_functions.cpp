@@ -32,4 +32,5 @@ void shutdown(int received_signal){
     //TODO disconnect()
     //TODO clean_all(resources);
     clean_counters();
+    clean_all();
 }

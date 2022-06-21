@@ -202,3 +202,19 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     free(buffer_hmac);
     return FIXED_HEADER_LENGTH + payload_length + ret;
 }
+
+bool get_payload_fields(const unsigned char* total_payload, payload_field** fields, const unsigned short num_fields){
+    unsigned int total_copied = 0;
+    for (unsigned short i= 0; i<num_fields; i++){
+        fields[i]=new payload_field();
+        memcpy(&fields[i]->field_len, total_payload+total_copied, sizeof(unsigned short));
+        if(total_copied>UINT_MAX-fields[i]->field_len){
+            cerr<<"Error: wrapping around counter while copying fields"<<endl;
+            return false;
+        }
+        total_copied += sizeof(unsigned short);
+        memcpy(fields[i]->field, total_payload+total_copied, fields[i]->field_len);
+        total_copied+=fields[i]->field_len;
+    }
+    return true;
+}

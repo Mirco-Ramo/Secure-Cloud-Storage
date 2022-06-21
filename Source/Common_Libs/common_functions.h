@@ -18,6 +18,7 @@ bool command_ok(const std::string& command);
 message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac, unsigned char* hmac_key=NULL, unsigned int counter=0);
 int send_msg(int socket_id, message* msg, bool hmac, std::string identity);
 int recv_msg(int socket_id, message *msg, bool hmac, std::string identity);
+bool get_payload_fields(const unsigned char* total_payload, payload_field** fields, const unsigned short num_fields);
 
 
 /*          CRYPTO FUNCTIONS        */
