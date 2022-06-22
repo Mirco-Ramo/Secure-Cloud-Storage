@@ -34,8 +34,8 @@ bool Worker::establish_session() {
     ret = recv_msg(this->socket_id, m1, false, this->identity);
     if(ret<=0 || m1->header.opcode!=AUTH_INIT)
         return false;
+
     client_pub_dhkey = decode_EVP_PKEY(m1->payload,m1->header.payload_length);
-    delete m1;
     allocatedBuffers.push_back({EVP_PKEY_BUF, client_pub_dhkey});
     //generate s
     EVP_PKEY* server_dhkey = NULL;
@@ -78,8 +78,8 @@ bool Worker::establish_session() {
     free(kmac);
 
     //prepare M2
-    unsigned short encoded_client_pub_dhkey_len;
-    unsigned char* encoded_client_pub_dhkey;
+    unsigned short encoded_client_pub_dhkey_len = m1->header.payload_length;
+    unsigned char* encoded_client_pub_dhkey = m1->payload;
     unsigned short encoded_server_pub_dhkey_len;
     unsigned char* encoded_server_pub_dhkey;
     if(!encode_EVP_PKEY(server_pub_dhkey, encoded_server_pub_dhkey, encoded_server_pub_dhkey_len)){
@@ -88,16 +88,11 @@ bool Worker::establish_session() {
         return false;
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, encoded_server_pub_dhkey});
-    if(!encode_EVP_PKEY(client_pub_dhkey, encoded_client_pub_dhkey, encoded_client_pub_dhkey_len)){
-        cerr<<"["+identity+"]: "<<"Cannot encode client dh pub key"<<endl;
-        clean_all();
-        return false;
-    }
-    allocatedBuffers.push_back({CLEAR_BUFFER, encoded_client_pub_dhkey});
+    allocatedBuffers.push_back({MESSAGE, m1});
 
     //sign g^u, g^s
     EVP_PKEY* server_privkey;
-    if (!read_privkey(server_privkey, "../Keys/Server/server_prv_key.pem")){
+    if (!read_privkey(server_privkey, "../Keys/Server/server_prvkey.pem")){
         cerr<<"["+identity+"]: "<<"Cannot read server private key"<<endl;
         clean_all();
         return false;
@@ -144,7 +139,7 @@ bool Worker::establish_session() {
     allocatedBuffers.push_back({ENC_BUFFER, enc_signature_buffer});
 
     //certificate loading
-    X509* certificate = read_certificate("../Keys/Server/Server_cert.pem");
+    X509* certificate = read_certificate("../Keys/Server/server_cert.pem");
     if(certificate == NULL){
         cerr<<"["+identity+"]: "<<"Cannot read input certificate"<<endl;
         clean_all();
@@ -193,19 +188,12 @@ bool Worker::establish_session() {
         return false;
     }
 
-    //EVP_PKEY* server_pubkey = X509_get_pubkey(certificate);
-    //X509_print_fp(stdout, certificate);
-    //BIO *bp = BIO_new_fp(stdout, BIO_NOCLOSE);
-    //EVP_PKEY_print_public(bp, server_pubkey , 1, NULL);
-    //free(bp);
-
     EVP_PKEY_free(server_privkey);
     free(signature_buffer);
     free(IV_buffer);
     free(enc_signature_buffer);
     X509_free(certificate);
     free(serialized_certificate);
-    delete m2;
 
     message* m3 = new message();
     if(recv_msg(socket_id, m3, false, identity)<=0){

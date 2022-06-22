@@ -18,7 +18,7 @@ message* build_message(unsigned char* iv, unsigned char opcode,
     h->payload_length = payload_length;
     message* m = new message();
     m->header = *h;
-    m->payload = payload;
+    memcpy(m->payload, payload, payload_length);
     if(hmac){
         unsigned char* buffer_mac;
         unsigned int buffer_mac_len;

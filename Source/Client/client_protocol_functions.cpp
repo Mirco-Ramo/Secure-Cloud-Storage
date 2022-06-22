@@ -44,7 +44,6 @@ bool begin_session(int socket_id, const string& username, const string& identity
         clean_all();
         return false;
     }
-    delete m1;
 
     //HANDLE M2
 
@@ -67,6 +66,10 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
 
+    for(int i=0; i<encoded_client_pub_dhkey_len; i++)
+        printf("%d", *(encoded_client_pub_dhkey+i));
+    cout<<endl<<endl<<endl<<endl;
+
     EVP_PKEY* server_pub_dhkey = decode_EVP_PKEY(encoded_server_pub_dhkey->field,encoded_server_pub_dhkey->field_len);
     if(server_pub_dhkey == NULL){
         cerr<<"Cannot decode server public key"<<endl;
@@ -74,8 +77,6 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, server_pub_dhkey});
-
-    cout<<"Server pub key decoded"<<endl;
 
     unsigned char* sess_key;
     unsigned char* kmac;
@@ -99,8 +100,6 @@ bool begin_session(int socket_id, const string& username, const string& identity
     free(sess_key);
     free(kmac);
 
-    cout<<"Session keys copied"<<endl;
-
     //check certificate, get server pub key
     X509* server_certificate = decode_certificate(encoded_server_cert->field, encoded_server_cert->field_len);
     if(server_certificate == NULL){
@@ -110,21 +109,15 @@ bool begin_session(int socket_id, const string& username, const string& identity
     }
     allocatedBuffers.push_back({X509_BUF,server_certificate});
 
-    if(verify_certificate(server_certificate,"../CertAuth/FOC_cert.pem","../CertAuth/FOC_crl.pem")<1){
+    if(verify_certificate(server_certificate,"../CertAuth/focCA_cert.pem","../CertAuth/focCA_crl.pem")<1){
         cerr<<"Cannot verify server certificate"<<endl;
         clean_all();
         return false;
     }
 
-    cout<<"Certificate verified"<<endl;
-
     //extract server pubkey
     EVP_PKEY* server_pubkey;
     server_pubkey = X509_get_pubkey(server_certificate);
-    //BIO *bp = BIO_new_fp(stdout, BIO_NOCLOSE);
-    //EVP_PKEY_print_public(bp, server_pubkey , 1, NULL);
-    //free(bp);
-    //X509_print_fp(stdout, server_certificate);
     if(server_pubkey == NULL){
         cerr<<"Cannot extract server public key from certificate"<<endl;
         clean_all();
@@ -154,19 +147,19 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
 
+    /////////DEBUGGING
+
     allocatedBuffers.push_back({CLEAR_BUFFER, groundtruth_fields});
     memcpy(groundtruth_fields,encoded_client_pub_dhkey,encoded_client_pub_dhkey_len);
     memcpy(groundtruth_fields + encoded_client_pub_dhkey_len, encoded_server_pub_dhkey->field,encoded_server_pub_dhkey->field_len);
 
-    ret = verify_signature(clear_signature,(unsigned short)clear_signature_len,groundtruth_fields,groundtruth_len,
-                           server_pubkey);
+    ret = verify_signature(clear_signature,clear_signature_len,groundtruth_fields,groundtruth_len,server_pubkey);
+
     if(ret<=0){
         cerr<<"Unable to verify signature"<<endl;
         clean_all();
         return false;
     }
-
-    cout<<"Signature verified"<<endl;
 
     delete m2;
 
