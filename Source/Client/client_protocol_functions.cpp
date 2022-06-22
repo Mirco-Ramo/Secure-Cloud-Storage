@@ -213,6 +213,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
     memcpy(m3_clear_payload + current_len,&username_characters,sizeof(unsigned short));
     current_len += sizeof(unsigned short);
     memcpy(m3_clear_payload + current_len,username.c_str(),username_characters);
+    current_len += username_characters;
 
     unsigned int encrypted_m3_payload_len;
     unsigned char* encrypted_m3_payload;

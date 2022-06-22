@@ -67,18 +67,46 @@ int main(int argc, char** argv) {
             cout << HELP_MESSAGE << endl << PROMPT;
         }
         else if(command == "LIST"){
-            if(!handle_list(client_socket, username, identity)){
+            if(!handle_list(client_socket, identity)){
                 cerr << "Error in contacting the server, disconnecting!" << endl;
                 clean_all();
-                exit(-1);
+                break;
             }
-            cout << PROMPT;
         }
         else if(command == "DOWNLOAD"){
-            handle_download();
+            string filename;
+            cout << "Please insert the name of the file you want to download" << endl << PROMPT;
+            cin >> filename;
+            cout << endl << PROMPT;
+
+            if(!check_file_name(filename)){
+                cout << "The name of the file is not correct, please insert a correct name "
+                        "(use the LIST command to check which file are present in your dedicated storage)" << endl << PROMPT;
+                continue;
+            }
+
+            if(!handle_download(client_socket, identity, filename)){
+                cerr << "Error in contacting the server, disconnecting!" << endl;
+                clean_all();
+                break;
+            }
         }
         else if(command == "UPLOAD"){
-            handle_upload();
+            string filename;
+            cout << "Please insert the name of the file you want to download" << endl << PROMPT;
+            cin >> filename;
+            cout << endl << PROMPT;
+
+            if(!check_file_name(filename)){
+                cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
+                continue;
+            }
+
+            if(!handle_upload(client_socket, identity, filename)){
+                cerr << "Error in contacting the server, disconnecting!" << endl;
+                clean_all();
+                break;
+            }
         }
         else if(command == "RENAME"){
             handle_rename();

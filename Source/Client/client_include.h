@@ -11,6 +11,7 @@
 #include "../Common_Libs/common_functions.h"
 #include "../Common_Libs/buffers.h"
 #include <vector>
+#include <fstream>
 
 /*              MACROS              */
 #define SERVER_ADDRESS "127.0.0.1"

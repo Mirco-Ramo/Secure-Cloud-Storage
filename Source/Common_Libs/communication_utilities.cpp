@@ -226,3 +226,25 @@ bool get_payload_fields(const unsigned char* total_payload, payload_field* field
     }
     return true;
 }
+
+unsigned int get_file_size(const string &filename, bool file_found) {
+    int ret = 0;
+
+    FILE *f = fopen(filename.c_str(), "rt");
+    if(f == nullptr) {
+        file_found = false;
+        return ret;
+    }
+
+    fseek(f, 0, SEEK_END);
+    ret = ftell(f);
+    fseek(f, 0 , SEEK_SET);
+
+    file_found = true;
+    return ret;
+}
+
+//TODO function to read chunks of files
+unsigned char *read_chunk(const string &filename, unsigned int sent_size) {
+    return nullptr;
+}
