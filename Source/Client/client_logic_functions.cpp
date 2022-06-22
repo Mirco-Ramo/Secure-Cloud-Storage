@@ -85,7 +85,7 @@ bool handle_list(int socket_id, const string& identity){
         return false;
     }
     if(WRONG_FORMAT == *(response->field)){
-        cerr << "Wrong format for M2 message" << endl;
+        cerr << "Wrong format for M1 message" << endl;
         return false;
     }
 
@@ -244,7 +244,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         return false;
     }
     if(WRONG_FORMAT == *(response->field)){
-        cerr << "Wrong format for M2 message" << endl;
+        cerr << "Wrong format for M1 message" << endl;
         return false;
     }
     else if(INVALID_FILENAME == *(response->field)){
@@ -452,7 +452,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             }
             allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
 
-            auto* clear_payload_i = read_chunk(file_name, sent_size);
+            auto* clear_payload_i = read_chunk(file_name, sent_size, MAX_PAYLOAD_LENGTH);
             if(!clear_payload_i){
                 cerr<<"Cannot allocate buffer for m3i"<<endl;
                 return false;

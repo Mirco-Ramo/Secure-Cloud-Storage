@@ -245,6 +245,6 @@ unsigned int get_file_size(const string &filename, bool file_found) {
 }
 
 //TODO function to read chunks of files
-unsigned char *read_chunk(const string &filename, unsigned int sent_size) {
+unsigned char *read_chunk(const string &filename, unsigned int sent_size, int max_read) {
     return nullptr;
 }

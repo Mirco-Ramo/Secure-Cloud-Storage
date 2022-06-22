@@ -20,7 +20,7 @@ int send_msg(int socket_id, message* msg, bool hmac, std::string identity);
 int recv_msg(int socket_id, message *msg, bool hmac, std::string identity);
 bool get_payload_fields(const unsigned char* total_payload, payload_field* fields[], unsigned short num_fields);
 unsigned int get_file_size(const string &filename, bool file_found);
-unsigned char *read_chunk(const string &filename, unsigned int sent_size);
+unsigned char *read_chunk(const string &filename, unsigned int sent_size, int max_read);
 
 
 /*          CRYPTO FUNCTIONS        */
