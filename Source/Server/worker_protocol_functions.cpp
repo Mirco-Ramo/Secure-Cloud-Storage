@@ -193,6 +193,12 @@ bool Worker::establish_session() {
         return false;
     }
 
+    //EVP_PKEY* server_pubkey = X509_get_pubkey(certificate);
+    //X509_print_fp(stdout, certificate);
+    //BIO *bp = BIO_new_fp(stdout, BIO_NOCLOSE);
+    //EVP_PKEY_print_public(bp, server_pubkey , 1, NULL);
+    //free(bp);
+
     EVP_PKEY_free(server_privkey);
     free(signature_buffer);
     free(IV_buffer);

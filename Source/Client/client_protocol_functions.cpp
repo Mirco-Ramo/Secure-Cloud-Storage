@@ -121,6 +121,10 @@ bool begin_session(int socket_id, const string& username, const string& identity
     //extract server pubkey
     EVP_PKEY* server_pubkey;
     server_pubkey = X509_get_pubkey(server_certificate);
+    //BIO *bp = BIO_new_fp(stdout, BIO_NOCLOSE);
+    //EVP_PKEY_print_public(bp, server_pubkey , 1, NULL);
+    //free(bp);
+    //X509_print_fp(stdout, server_certificate);
     if(server_pubkey == NULL){
         cerr<<"Cannot extract server public key from certificate"<<endl;
         clean_all();
