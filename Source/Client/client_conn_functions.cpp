@@ -5,7 +5,15 @@
 #include "client_include.h"
 #include "client_functions.h"
 
-int connect_to_server(sockaddr_in* server_addr, int* client_socket){
+extern vector<buffer> allocatedBuffers;
+extern unsigned char hmac_key[];
+extern unsigned char session_key[];
+extern unsigned int client_counter;
+extern unsigned int server_counter;
+extern int client_socket;
+
+
+int connect_to_server(sockaddr_in* server_addr, int* c_socket){
     const char *ip = SERVER_ADDRESS;
     int port = SERVER_PORT;
     memset(server_addr,0,sizeof(sockaddr_in));
@@ -17,7 +25,7 @@ int connect_to_server(sockaddr_in* server_addr, int* client_socket){
     int sock_number = socket(AF_INET,SOCK_STREAM,0);
     if(sock_number == -1)
         return sock_number;
-    *client_socket = sock_number;
+    *c_socket = sock_number;
 
     //time-out server
     timeval timeout = {80,0};
@@ -33,4 +41,10 @@ void shutdown(int received_signal){
     //TODO clean_all(resources);
     clean_counters();
     clean_all();
+#pragma optimize("", off)
+    memset(session_key, 0, KEY_LEN);
+    memset(hmac_key, 0, HMAC_KEY_LEN);
+#pragma optimize("", on)
+    close(client_socket);
+    exit(-3);
 }

@@ -939,7 +939,7 @@ int verify_hmac(message* m, unsigned int counter, unsigned char* hmac_key){
     free(computed_digest);
     if (ret != 0) { //Wrong digests
         cerr << "The message results to be not authenticated\n";
-        return -1;
+        return 0;
     }
     return 1;
 }

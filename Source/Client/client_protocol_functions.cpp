@@ -188,7 +188,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
     unsigned short m3_clear_payload_len = client_signed_len + username_characters + 2*sizeof(unsigned short);
     auto* m3_clear_payload = (unsigned char*)malloc(m3_clear_payload_len+ 3*sizeof(unsigned short));
     if(!m3_clear_payload){
-        cerr<<"["+identity+"]: "<<"Cannot allocate buffer for m3"<<endl;
+        cerr<<"Cannot allocate buffer for m3"<<endl;
         clean_all();
         return false;
     }
@@ -216,12 +216,31 @@ bool begin_session(int socket_id, const string& username, const string& identity
 
     message* m3 = build_message(IV_buffer, NO_OPCODE, encrypted_m3_payload_len, encrypted_m3_payload, false);
     if(send_msg(socket_id, m3, false, identity) < current_len+FIXED_HEADER_LENGTH){
-        cerr<<"["+identity+"]: "<<"Cannot send M2"<<endl;
+        cerr<<"Cannot send M3"<<endl;
         clean_all();
         return false;
     }
-    clean_all();
 
+    client_counter = 0;
+    server_counter = 0;
+
+    message* m4 = new message();
+    if(recv_msg(socket_id, m4, true, identity)<=0){
+        cerr<<"Cannot receive M4 from server"<<endl;
+        clean_all();
+        return false;
+    }
+    ret = verify_hmac(m4, server_counter, hmac_key);
+    if(ret<0){
+        cerr<<"Cannot verify M4"<<endl;
+        clean_all();
+        return false;
+    }
+    else if(ret==0){
+        cerr<<"Corrupted message detected. Leaving the socket"<<endl;
+        shutdown(0);
+    }
+    clean_all();
     return true;
 }
 
