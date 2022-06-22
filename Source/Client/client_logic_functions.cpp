@@ -38,7 +38,7 @@ bool handle_list(int socket_id, const string& username, const string& identity){
     server_counter++;
 
     if(m2->header.opcode != LIST_RES){
-        cerr<<"Received an M2 response with unexpected opcode: " + m2->header.opcode <<endl;
+        cerr<<"Received an M2 response with unexpected opcode: " << m2->header.opcode <<endl;
         return false;
     }
 
@@ -105,7 +105,7 @@ bool handle_list(int socket_id, const string& username, const string& identity){
             server_counter++;
 
             if (m2->header.opcode != LIST_DATA) {
-                cerr << "Received an M2 response with unexpected opcode: " + m2->header.opcode << endl;
+                cerr << "Received an M2 response with unexpected opcode: " << m2->header.opcode << endl;
                 return false;
             }
 
