@@ -31,7 +31,7 @@ common_libs: communication_utilities.o crypto_utilities.o
 
 #server objects
 server_main.o: $(SERVER_SRC)/server_main.cpp $(SERVER_SRC)/server_functions.h $(SERVER_SRC)/server_include.h
-	g++ -c $(SERVER_SRC)/ServerMain.cpp -o $(SERVER_BLD)/ServerMain.o -Wall -Wno-unknown-pragmas
+	g++ -c $(SERVER_SRC)/server_main.cpp -o $(SERVER_BLD)/server_main.o -Wall -Wno-unknown-pragmas
 
 server_conn.o: $(SERVER_SRC)/server_conn_functions.cpp $(SERVER_SRC)/server_functions.h $(SERVER_SRC)/server_include.h $(SERVER_SRC)/worker.h
 	g++ -c $(SERVER_SRC)/server_conn_functions.cpp -o $(SERVER_BLD)/server_conn.o -Wall -Wno-unknown-pragmas
@@ -40,11 +40,11 @@ worker_protocol.o: $(SERVER_SRC)/worker_protocol_functions.cpp $(SERVER_SRC)/ser
 	g++ -c $(SERVER_SRC)/worker_protocol_functions.cpp -o $(SERVER_BLD)/worker_protocol.o -Wall -Wno-unknown-pragmas
 
 worker_logic.o: $(SERVER_SRC)/worker_logic_functions.cpp $(SERVER_SRC)/server_functions.h $(SERVER_SRC)/server_include.h $(SERVER_SRC)/worker.h
-	g++ -c $(SERVER_SRC)/worker_logic_functions.cpp -o $(SERVER_BLD)/worker_protocol.o -Wall -Wno-unknown-pragmas
+	g++ -c $(SERVER_SRC)/worker_logic_functions.cpp -o $(SERVER_BLD)/worker_logic.o -Wall -Wno-unknown-pragmas
 
 #client objects
 client_main.o: $(CLIENT_SRC)/client_main.cpp $(CLIENT_SRC)/client_include.h $(CLIENT_SRC)/client_functions.h
-	g++ -c $(CLIENT_SRC)/Client_main.cpp -o $(CLIENT_BLD)/Client:main.o -Wall -Wno-unknown-pragmas
+	g++ -c $(CLIENT_SRC)/client_main.cpp -o $(CLIENT_BLD)/client_main.o -Wall -Wno-unknown-pragmas
 
 client_conn.o: $(CLIENT_SRC)/client_conn_functions.cpp $(CLIENT_SRC)/client_include.h $(CLIENT_SRC)/client_functions.h
 	g++ -c $(CLIENT_SRC)/client_conn_functions.cpp -o $(CLIENT_BLD)/client_conn.o -Wall -Wno-unknown-pragmas
@@ -53,7 +53,7 @@ client_logic.o: $(CLIENT_SRC)/client_logic_functions.cpp $(CLIENT_SRC)/client_in
 	g++ -c $(CLIENT_SRC)/client_logic_functions.cpp -o $(CLIENT_BLD)/client_logic.o -Wall -Wno-unknown-pragmas
 
 client_protocol.o: $(CLIENT_SRC)/client_protocol_functions.cpp $(CLIENT_SRC)/client_include.h $(CLIENT_SRC)/client_functions.h
-	g++ -c $(CLIENT_SRC)/client_protocol_functions.cpp -o $(CLIENT_BLD)/client_protocol.o.o -Wall -Wno-unknown-pragmas
+	g++ -c $(CLIENT_SRC)/client_protocol_functions.cpp -o $(CLIENT_BLD)/client_protocol.o -Wall -Wno-unknown-pragmas
 
 #lib objects
 crypto_utilities.o: $(LIB_SRC)/crypto_utilities.cpp $(LIB_SRC)/buffers.h $(LIB_SRC)/common_functions.h $(LIB_SRC)/common_parameters.h $(LIB_SRC)/struct_message.h
