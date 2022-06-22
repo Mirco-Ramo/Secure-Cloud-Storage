@@ -325,6 +325,8 @@ void clean_all(){
 #pragma optimize("", on)
                 free(pointer_elem->content);
                 break;
+            case MESSAGE:
+                delete (message*)pointer_elem->content;
             default:
                 cout<<"Cannot free buffer"<<endl;
                 break;

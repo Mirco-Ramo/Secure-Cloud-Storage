@@ -2,6 +2,7 @@
 // Created by Francesco Del Turco, Mirco Ramo
 //
 #include "client_include.h"
+#include "client_functions.h"
 
 extern vector<buffer> allocatedBuffers;
 extern unsigned char hmac_key[];
@@ -10,7 +11,7 @@ extern unsigned int client_counter;
 extern unsigned int server_counter;
 extern int username;
 
-void print_list(unsigned char *listI);
+void print_list(unsigned char *list, unsigned int list_len);
 
 bool handle_list(int socket_id, const string& username, const string& identity){
     int ret;
@@ -23,6 +24,7 @@ bool handle_list(int socket_id, const string& username, const string& identity){
     }
     delete m1;
     client_counter++;
+    //TODO check overflow
 
     message* m2 = new message();
     if(recv_msg(socket_id, m2, true, identity)<=0){
@@ -30,6 +32,7 @@ bool handle_list(int socket_id, const string& username, const string& identity){
         return false;
     }
 
+    allocatedBuffers.push_back({MESSAGE, m2});
     ret = verify_hmac(m2, server_counter, hmac_key);
     if(ret != 1){
         return false;
@@ -52,17 +55,19 @@ bool handle_list(int socket_id, const string& username, const string& identity){
         return false;
     }
 
-    payload_field* response;
-    payload_field* list_size;
+    allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
+    payload_field* response = new payload_field();
+    payload_field* list_size = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {response, list_size};
     if(!get_payload_fields(m2->payload, fields, num_fields)){
         cerr<<"Cannot unpack payload fields"<<endl;
-        allocatedBuffers.push_back({CLEAR_BUFFER, payload});
         return false;
     }
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, response->field});
+    allocatedBuffers.push_back({CLEAR_BUFFER, response->field, response->field_len});
+    allocatedBuffers.push_back({CLEAR_BUFFER, list_size->field, list_size->field_len});
+
     if(*(response->field) != WRONG_FORMAT || *(response->field) != REQ_OK){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
@@ -72,7 +77,6 @@ bool handle_list(int socket_id, const string& username, const string& identity){
         return false;
     }
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, list_size});
     if(list_size->field_len < 0){
         cerr << "Error in size of the list" << endl;
         return false;
@@ -86,7 +90,7 @@ bool handle_list(int socket_id, const string& username, const string& identity){
         unsigned char* list;
         memcpy(list, &payload[response->field_len + list_size->field_len + 3], list_len);
 
-        print_list(list);
+        print_list(list, list_len);
 
         unsigned int recvd_list = list_len;
 
@@ -119,7 +123,7 @@ bool handle_list(int socket_id, const string& username, const string& identity){
                 return false;
             }
 
-            payload_field *response_i;
+            payload_field *response_i = new payload_field();
             unsigned short num_fields_i = 1;
             payload_field *fields_i[] = {response_i};
             if (!get_payload_fields(m2->payload, fields_i, num_fields_i)) {
@@ -142,18 +146,18 @@ bool handle_list(int socket_id, const string& username, const string& identity){
             unsigned char *list_i;
             memcpy(list_i, &payload[response_i->field_len + 1], list_len_i);
 
-            print_list(list_i);
+            print_list(list_i, list_len_i);
 
             recvd_list += list_len_i;
-
-            delete m2i;
         }
     }
+    clean_all();
     return true;
 }
 
-void print_list(unsigned char *list) {
-    //TODO tokenize string and print one file by one?
+void print_list(unsigned char *list, unsigned int list_len) {
+    string app = string((const char*) list, list_len);
+    cout << app;
 }
 
 void handle_download(){

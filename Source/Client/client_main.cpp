@@ -69,8 +69,10 @@ int main(int argc, char** argv) {
         else if(command == "LIST"){
             if(!handle_list(client_socket, username, identity)){
                 cerr << "Error in contacting the server, disconnecting!" << endl;
+                clean_all();
                 exit(-1);
             }
+            cout << PROMPT;
         }
         else if(command == "DOWNLOAD"){
             handle_download();
