@@ -20,7 +20,7 @@ env:
 
 #build server
 server: server_main.o server_conn.o worker_protocol.o worker_logic.o common_libs
-	g++  $(SERVER_BLD)/ServerMain.o $(SERVER_BLD)/server_conn.o $(SERVER_BLD)/worker_protocol.o $(SERVER_BLD)/worker_logic.o  $(LIB_BLD)/crypto_utilities.o $(LIB_BLD)/communication_utilities.o -o $(SERVER_BLD)/Server -lcrypto -pthread -Wall -Wno-unknown-pragmas
+	g++  $(SERVER_BLD)/server_main.o $(SERVER_BLD)/server_conn.o $(SERVER_BLD)/worker_protocol.o $(SERVER_BLD)/worker_logic.o  $(LIB_BLD)/crypto_utilities.o $(LIB_BLD)/communication_utilities.o -o $(SERVER_BLD)/Server -lcrypto -pthread -Wall -Wno-unknown-pragmas
 
 #build client
 client: client_main.o client_conn.o client_logic.o client_protocol.o common_libs
