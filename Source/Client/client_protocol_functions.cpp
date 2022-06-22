@@ -48,15 +48,17 @@ bool begin_session(int socket_id, const string& username, const string& identity
 
     //HANDLE M2
 
-    message* m2 = new message();
+    auto* m2 = new message();
     if(recv_msg(socket_id, m2, false, identity)<=0){
         cerr<<"Cannot receive M2 from server"<<endl;
         clean_all();
         return false;
     }
-    payload_field* encoded_server_pub_dhkey;
-    payload_field* encoded_server_signature;
-    payload_field* encoded_server_cert;
+
+
+    auto* encoded_server_pub_dhkey = new payload_field();
+    auto* encoded_server_signature = new payload_field();
+    auto* encoded_server_cert = new payload_field();
     unsigned short num_fields = 3;
     payload_field* fields[] = {encoded_server_pub_dhkey, encoded_server_signature, encoded_server_cert};
     if(!get_payload_fields(m2->payload, fields, num_fields)){
@@ -72,6 +74,8 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, server_pub_dhkey});
+
+    cout<<"Server pub key decoded"<<endl;
 
     unsigned char* sess_key;
     unsigned char* kmac;
@@ -95,6 +99,8 @@ bool begin_session(int socket_id, const string& username, const string& identity
     free(sess_key);
     free(kmac);
 
+    cout<<"Session keys copied"<<endl;
+
     //check certificate, get server pub key
     X509* server_certificate = decode_certificate(encoded_server_cert->field, encoded_server_cert->field_len);
     if(server_certificate == NULL){
@@ -109,6 +115,8 @@ bool begin_session(int socket_id, const string& username, const string& identity
         clean_all();
         return false;
     }
+
+    cout<<"Certificate verified"<<endl;
 
     //extract server pubkey
     EVP_PKEY* server_pubkey;
@@ -132,6 +140,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, clear_signature});
 
+
     //sign verification, return true only if the message was signed using server's pub key, and only if it actually signed g^u and g^s
     unsigned short groundtruth_len = encoded_client_pub_dhkey_len + encoded_server_pub_dhkey->field_len;
     auto* groundtruth_fields = (unsigned char*)malloc(groundtruth_len);
@@ -140,16 +149,20 @@ bool begin_session(int socket_id, const string& username, const string& identity
         clean_all();
         return false;
     }
+
     allocatedBuffers.push_back({CLEAR_BUFFER, groundtruth_fields});
     memcpy(groundtruth_fields,encoded_client_pub_dhkey,encoded_client_pub_dhkey_len);
     memcpy(groundtruth_fields + encoded_client_pub_dhkey_len, encoded_server_pub_dhkey->field,encoded_server_pub_dhkey->field_len);
-    ret = verify_signature(clear_signature,clear_signature_len,groundtruth_fields,groundtruth_len,
+
+    ret = verify_signature(clear_signature,(unsigned short)clear_signature_len,groundtruth_fields,groundtruth_len,
                            server_pubkey);
     if(ret<=0){
         cerr<<"Unable to verify signature"<<endl;
         clean_all();
         return false;
     }
+
+    cout<<"Signature verified"<<endl;
 
     delete m2;
 
@@ -175,7 +188,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, client_signed_buffer});
 
-    unsigned char* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
+    auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
     if(!IV_buffer){
         cerr<<"Cannot allocate buffer for IV"<<endl;
         clean_all();
@@ -314,16 +327,20 @@ void clean_all(){
                 DH_free((DH*)pointer_elem->content);
                 break;
             case ENC_KEY:
+                if(pointer_elem->content) {
 #pragma optimize("", off)
-                memset(pointer_elem->content,0,KEY_LEN);
+                    memset(pointer_elem->content, 0, KEY_LEN);
 #pragma optimize("", on)
-                free(pointer_elem->content);
+                    free(pointer_elem->content);
+                }
                 break;
             case HASH_KEY:
+                if(pointer_elem->content) {
 #pragma optimize("", off)
-                memset(pointer_elem->content,0,HMAC_KEY_LEN);
+                    memset(pointer_elem->content, 0, DIGEST_LEN);
 #pragma optimize("", on)
-                free(pointer_elem->content);
+                    free(pointer_elem->content);
+                }
                 break;
             case MESSAGE:
                 delete (message*)pointer_elem->content;
@@ -333,8 +350,4 @@ void clean_all(){
         }
     }
     allocatedBuffers.clear();
-#pragma optimize("", off)
-    memset(session_key,0,KEY_LEN);
-    memset(hmac_key,0,HMAC_KEY_LEN);
-#pragma optimize("", on)
 }

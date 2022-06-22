@@ -151,16 +151,20 @@ void Worker::clean_all(){
                 DH_free((DH*)pointer_elem->content);
                 break;
             case ENC_KEY:
+                if(pointer_elem->content) {
 #pragma optimize("", off)
-                memset(pointer_elem->content,0,KEY_LEN);
+                    memset(pointer_elem->content, 0, KEY_LEN);
 #pragma optimize("", on)
-                free(pointer_elem->content);
+                    free(pointer_elem->content);
+                }
                 break;
             case HASH_KEY:
+                if(pointer_elem->content) {
 #pragma optimize("", off)
-                memset(pointer_elem->content,0,DIGEST_LEN);
+                    memset(pointer_elem->content, 0, DIGEST_LEN);
 #pragma optimize("", on)
-                free(pointer_elem->content);
+                    free(pointer_elem->content);
+                }
                 break;
             case MESSAGE:
                 delete (message*)pointer_elem->content;

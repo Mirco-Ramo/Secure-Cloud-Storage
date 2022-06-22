@@ -14,8 +14,8 @@ class Worker {
     string username;
     string identity;
     bool logout_request;
-    long worker_counter;
-    long client_counter;
+    unsigned int worker_counter;
+    unsigned int client_counter;
     unsigned char session_key[KEY_LEN];
     unsigned char hmac_key[HMAC_KEY_LEN];
     vector<buffer> allocatedBuffers;
