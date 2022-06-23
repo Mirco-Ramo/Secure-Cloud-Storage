@@ -18,6 +18,11 @@ message* build_message(unsigned char* iv, unsigned char opcode,
     h->payload_length = payload_length;
     message* m = new message();
     m->header = *h;
+    m->payload = (unsigned char*)malloc(m->header.payload_length);
+    if(!m->payload){
+        cerr<<"Cannot allocate buffer to build message"<<endl;
+        return NULL;
+    }
     memcpy(m->payload, payload, payload_length);
     if(hmac){
         unsigned char* buffer_mac;
