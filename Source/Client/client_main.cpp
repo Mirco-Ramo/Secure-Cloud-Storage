@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
     if (!begin_session(client_socket, username, identity)){
         cerr<<"Cannot begin session with server"<<endl;
-        exit(-3);
+        shutdown(-3);
     }
 
     cout<<HELP_MESSAGE<<endl;

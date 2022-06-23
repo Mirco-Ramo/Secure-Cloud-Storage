@@ -10,11 +10,11 @@ int connectionSocketListener;
 
 vector<Worker*> active_workers;
 vector<pthread_t> active_threads;
+EVP_PKEY* server_privkey;
 
 void handleErrors(const string& reason, int exit_code){
     cerr<<reason<<endl;
-    if (exit_code)
-        exit(exit_code);
+    shutdown_server(exit_code);
 }
 
 void init() {
@@ -42,6 +42,11 @@ void listen_connections() {
     listener_addr.sin_port=htons(LISTENING_PORT);
     listener_addr.sin_addr.s_addr=INADDR_ANY;
 
+
+    if (!read_privkey(server_privkey, "../Keys/Server/server_prvkey.pem")){
+        handleErrors("Cannot read server private key", -40);
+    }
+
     //bind initialization
     if (bind(connectionSocketListener,(struct sockaddr*)&listener_addr,sizeof(listener_addr))<0)
         handleErrors("Error while binding listener socket", LISTENER_SOCKET_ERROR);
@@ -60,7 +65,7 @@ void listen_connections() {
         char buff[16];
         client_ip = inet_ntop(AF_INET,(void*)&client_addr.sin_addr,buff,sizeof(buff));
         cout <<"New connection established with " << client_ip <<endl;
-        Worker* w = new Worker(clientConnectionSocket);
+        Worker* w = new Worker(clientConnectionSocket, server_privkey);
         active_workers.push_back(w);
         pthread_t pthread;
         pthread_create(&pthread, NULL, &Worker::handle_commands_helper, w);
@@ -73,6 +78,8 @@ void shutdown_server(int received_signal){
     signal(SIGINT, SIG_IGN);
     signal(SIGTERM, SIG_IGN);
 
+    EVP_PKEY_free(server_privkey);
+
     for(auto &active_thread : active_threads){
         pthread_kill(active_thread, SIGTERM);
     }
@@ -83,5 +90,5 @@ void shutdown_server(int received_signal){
     }
     //TODO clean_all
     //
-    exit(0);
+    exit(received_signal);
 }

@@ -55,9 +55,9 @@ bool Worker::establish_session() {
     allocatedBuffers.push_back({EVP_PKEY_BUF, server_pub_dhkey});
 
     //derive session key, hmac_key
-    unsigned char *sess_key, *kmac;
-    unsigned short key_len = KEY_LEN, kmac_len = HMAC_KEY_LEN;
-    ret = generate_dh_session_key(server_dhkey,client_pub_dhkey,sess_key, key_len, kmac, kmac_len);
+    unsigned char *sess_key;
+    unsigned char *kmac;
+    ret = generate_dh_session_key(server_dhkey,client_pub_dhkey,sess_key, KEY_LEN, kmac, HMAC_KEY_LEN);
     if(ret == 0){
         cerr<<"["+identity+"]: "<<"Session key generation failed for a buffer error"<<endl;
         clean_all();
@@ -71,8 +71,8 @@ bool Worker::establish_session() {
     memcpy(this->session_key, sess_key, KEY_LEN);
     memcpy(this->hmac_key, kmac, HMAC_KEY_LEN);
 #pragma optimize("", off)
-    memset(sess_key, 0, key_len);
-    memset(kmac, 0, kmac_len);
+    memset(sess_key, 0, KEY_LEN);
+    memset(kmac, 0, HMAC_KEY_LEN);
 #pragma optimize("", on)
     free(sess_key);
     free(kmac);
@@ -91,13 +91,7 @@ bool Worker::establish_session() {
     allocatedBuffers.push_back({MESSAGE, m1});
 
     //sign g^u, g^s
-    EVP_PKEY* server_privkey;
-    if (!read_privkey(server_privkey, "../Keys/Server/server_prvkey.pem")){
-        cerr<<"["+identity+"]: "<<"Cannot read server private key"<<endl;
-        clean_all();
-        return false;
-    }
-    allocatedBuffers.push_back({EVP_PKEY_BUF, server_privkey});
+
 
     unsigned short to_sign_buf_len = encoded_client_pub_dhkey_len + encoded_server_pub_dhkey_len;
     unsigned char* to_sign_buffer = (unsigned char*) malloc(to_sign_buf_len);
@@ -188,19 +182,13 @@ bool Worker::establish_session() {
         return false;
     }
 
-    EVP_PKEY_free(server_privkey);
-    free(signature_buffer);
-    free(IV_buffer);
-    free(enc_signature_buffer);
-    X509_free(certificate);
-    free(serialized_certificate);
-
     message* m3 = new message();
     if(recv_msg(socket_id, m3, false, identity)<=0){
         cerr<<"["+identity+"]: "<<"Cannot receive M3 from client"<<endl;
         clean_all();
         return false;
     }
+    allocatedBuffers.push_back({MESSAGE, m3});
     unsigned char* decrypted_payload;
     unsigned int decrypted_len;
     ret = symm_decrypt(m3->payload, m3->header.payload_length,
@@ -212,16 +200,18 @@ bool Worker::establish_session() {
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, decrypted_payload, decrypted_len});
 
-    payload_field* signed_pub_dh_keys;
-    payload_field* recv_username;
+    payload_field* signed_pub_dh_keys = new payload_field();
+    payload_field* recv_username = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {signed_pub_dh_keys, recv_username};
     if(!get_payload_fields(decrypted_payload, fields, num_fields)){
-
+        cerr<<"["+identity+"]: "<<"Cannot unpack received m3 payload"<<endl;
+        clean_all();
+        return false;
     }
 
-    string str_username((const char*)recv_username->field, recv_username->field_len);
-    if(!check_username(string(str_username))){
+    string str_username((const char*)recv_username->field, recv_username->field_len-1);
+    if(!check_username(str_username)){
         cerr<<"["+identity+"]: "<<"Username does not satisfy constraints"<<endl;
         send_failure_message(MISSING_USER, AUTH_RESPONSE);
         clean_all();
@@ -231,16 +221,14 @@ bool Worker::establish_session() {
     this->username = str_username;
     this->identity = "Worker for: "+this->username;
 
-
     EVP_PKEY* client_pubkey;
-    if (!read_privkey(client_pubkey, string("../Keys/Server/Client_Pub_Keys/" + str_username + "_pubkey"))){
+    if (!read_pubkey(client_pubkey, string("../Keys/Server/Client_Pub_Keys/" + str_username + "_pubkey"))){
         cerr<<"["+identity+"]: "<<"Cannot read client public key"<<endl;
         send_failure_message(MISSING_USER, AUTH_RESPONSE);
         clean_all();
         return false;
     }
-    allocatedBuffers.push_back({EVP_PKEY_BUF, server_privkey});
-
+    allocatedBuffers.push_back({EVP_PKEY_BUF, client_pubkey});
 
     //contextually, checks that signed parameters are actually g^u and g^s
     unsigned short groundtruth_len = to_sign_buf_len;
@@ -253,7 +241,6 @@ bool Worker::establish_session() {
         clean_all();
         return false;
     }
-
 
     unsigned char clear_resp = REQ_OK;
     IV_buffer = (unsigned char*)malloc(IV_LENGTH);
@@ -278,8 +265,9 @@ bool Worker::establish_session() {
     message* m4;
     m4 = build_message(IV_buffer, AUTH_RESPONSE, enc_buffer_len, enc_buffer, true, this->hmac_key);
     send_msg(this->socket_id, m4, true, identity);
-    delete m3;
-    delete m4;
+    allocatedBuffers.push_back({MESSAGE, m4});
+    this->client_counter = 1;
+    this->worker_counter = 1;
     clean_all();
     return true;
 }

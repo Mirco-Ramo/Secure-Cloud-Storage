@@ -4,13 +4,14 @@
 
 #include "worker.h"
 
-Worker::Worker(int socket_id) {
+Worker::Worker(int socket_id, EVP_PKEY* server_privkey) {
     this->username = to_string(rand() % 100); //temporary name, no guarantees on uniqueness
     this->socket_id = socket_id;
     this->logout_request = false;
     this->worker_counter = 0;
     this->client_counter = 0;
     this->identity = "Worker for: "+this->username;
+    this->server_privkey = server_privkey;
 }
 
 void Worker::handleErrors(const string& reason, int exit_code){
@@ -30,8 +31,6 @@ void* Worker::handle_commands_helper(void *context)
 void* Worker::handle_commands() {
     if(!establish_session())
         handleErrors("["+identity+"]: Fatal error: cannot perform key exchange protocol with client", 10);
-
-    cout<<"Yeeee, you did it!"<<endl;
 
     delete this;
     return 0;
@@ -168,6 +167,7 @@ void Worker::clean_all(){
                 break;
             case MESSAGE:
                 delete (message*)pointer_elem->content;
+                break;
             default:
                 cout<<"Cannot free buffer"<<endl;
                 break;

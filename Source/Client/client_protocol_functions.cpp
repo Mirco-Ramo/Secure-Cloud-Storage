@@ -66,10 +66,6 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
 
-    for(int i=0; i<encoded_client_pub_dhkey_len; i++)
-        printf("%d", *(encoded_client_pub_dhkey+i));
-    cout<<endl<<endl<<endl<<endl;
-
     EVP_PKEY* server_pub_dhkey = decode_EVP_PKEY(encoded_server_pub_dhkey->field,encoded_server_pub_dhkey->field_len);
     if(server_pub_dhkey == NULL){
         cerr<<"Cannot decode server public key"<<endl;
@@ -251,8 +247,27 @@ bool begin_session(int socket_id, const string& username, const string& identity
         cerr<<"Corrupted message detected. Leaving the socket"<<endl;
         shutdown(0);
     }
+
+    bool response = false;
+
+    unsigned int clear_response_len;
+    unsigned char* clear_response;
+
+    ret = symm_decrypt(m4->payload, m4->header.payload_length,
+                       session_key, m4->header.initialization_vector,clear_response,clear_response_len);
+    if(ret==0){
+        cerr<<"Cannot decrypt m4 response"<<endl;
+        clean_all();
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, clear_response, clear_response_len});
+
+    if(*(clear_response) == REQ_OK)
+        response = true;
+    client_counter = 1;
+    server_counter = 1;
     clean_all();
-    return true;
+    return response;
 }
 
 
@@ -342,6 +357,7 @@ void clean_all(){
                 break;
             case MESSAGE:
                 delete (message*)pointer_elem->content;
+                break;
             default:
                 cout<<"Cannot free buffer"<<endl;
                 break;

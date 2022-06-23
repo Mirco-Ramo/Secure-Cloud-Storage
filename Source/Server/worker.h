@@ -19,10 +19,10 @@ class Worker {
     unsigned char session_key[KEY_LEN];
     unsigned char hmac_key[HMAC_KEY_LEN];
     vector<buffer> allocatedBuffers;
-    //received_Command
+    EVP_PKEY* server_privkey;
 public:
     /*      CONSTRUCTOR         */
-    Worker(int socket_id);
+    Worker(int socket_id, EVP_PKEY* server_privkey);
 
     /*      PROTOCOL MANAGEMENT    */
     bool establish_session();
