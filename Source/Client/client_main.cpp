@@ -50,17 +50,16 @@ int main(int argc, char** argv) {
 
     bool logout_request = false;
 
-    //TODO change exit with clean-up
     while(!logout_request) {
         cout << "Please, enter a command (type HELP to see a list of commands available): " << endl << PROMPT;
         string command;
         getline(cin, command);
         if (!cin) {
             cerr << "Error during command input"<<endl;
-            exit(-1);
+            break;
         }
         if(!command_ok(command)){
-            cerr << "Please input valid commands. Only uppercase characters allowed."<<endl;
+            cerr << "Please input valid commands. Only uppercase characters allowed."<<endl << PROMPT;
             continue;
         }
         if(command == "HELP"){
@@ -72,6 +71,7 @@ int main(int argc, char** argv) {
                 clean_all();
                 break;
             }
+            clean_all();
         }
         else if(command == "DOWNLOAD"){
             string filename;
@@ -90,10 +90,11 @@ int main(int argc, char** argv) {
                 clean_all();
                 break;
             }
+            clean_all();
         }
         else if(command == "UPLOAD"){
             string filename;
-            cout << "Please insert the name of the file you want to download" << endl << PROMPT;
+            cout << "Please insert the name of the file you want to upload" << endl << PROMPT;
             cin >> filename;
             cout << endl << PROMPT;
 
@@ -107,22 +108,67 @@ int main(int argc, char** argv) {
                 clean_all();
                 break;
             }
+            clean_all();
         }
         else if(command == "RENAME"){
-            handle_rename();
+            string old_filename;
+            cout << "Please insert the name of the file you want to rename" << endl << PROMPT;
+            cin >> old_filename;
+            cout << endl << PROMPT;
+
+            if(!check_file_name(old_filename)){
+                cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
+                continue;
+            }
+
+            string new_filename;
+            cout << "Please insert the new name you want to give to the file (must not be already present as a name of a file in the storage)" << endl << PROMPT;
+            cin >> new_filename;
+            cout << endl << PROMPT;
+
+            if(!check_file_name(new_filename)){
+                cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
+                continue;
+            }
+
+            if(!handle_rename(client_socket, identity, old_filename, new_filename)){
+                cerr << "Error in contacting the server, disconnecting!" << endl;
+                clean_all();
+                break;
+            }
+            clean_all();
         }
         else if(command == "DELETE"){
-            handle_delete();
+            string filename;
+            cout << "Please insert the name of the file you want to delete" << endl << PROMPT;
+            cin >> filename;
+            cout << endl << PROMPT;
+
+            if(!check_file_name(filename)){
+                cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
+                continue;
+            }
+
+            if(!handle_delete(client_socket, identity, filename)){
+                cerr << "Error in contacting the server, disconnecting!" << endl;
+                clean_all();
+                break;
+            }
+            clean_all();
         }
         else if(command == "LOGOUT"){
-            handle_logout();
+            if(!handle_logout(client_socket, identity)){
+                cerr << "Error in contacting the server, disconnecting!" << endl;
+                clean_all();
+                break;
+            }
+            clean_all();
             logout_request = true;
         }
         else{
             cerr << "Invalid command."<<endl;
             continue;
         }
-        //TODO consider if doing command and then request elements later for simplicity
         /*
         message* m;
         unsigned char* iv_buf = (unsigned char*)malloc(IV_LENGTH*sizeof(unsigned char));

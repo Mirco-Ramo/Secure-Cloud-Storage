@@ -237,7 +237,6 @@ unsigned int get_file_size(const string &filename, bool file_found) {
 
     FILE *f = fopen(filename.c_str(), "rt");
     if(f == nullptr) {
-        file_found = false;
         return ret;
     }
 
@@ -249,7 +248,30 @@ unsigned int get_file_size(const string &filename, bool file_found) {
     return ret;
 }
 
-//TODO function to read chunks of files
 unsigned char *read_chunk(const string &filename, unsigned int sent_size, int max_read) {
-    return nullptr;
+    auto *chunk = (unsigned char*)malloc(max_read);
+    char *app = (char*)malloc(max_read);
+
+    ifstream file;
+    file.open(filename, ios::in);
+    file.ignore(sent_size);
+    file.read(app, max_read);
+
+    memcpy(chunk, app, max_read);
+
+    return chunk;
+}
+
+void write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename) {
+    string app = string((const char*) file_chunk, chunk_len);
+
+    //TODO set right path
+    ofstream outfile;
+    outfile.open(filename, std::ios_base::app);
+    outfile << app;
+    outfile.close();
+}
+
+bool delete_file(const string &filename){
+    return remove(filename.c_str());
 }

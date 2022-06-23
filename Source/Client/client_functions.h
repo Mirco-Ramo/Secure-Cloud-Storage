@@ -19,9 +19,9 @@ bool begin_session(int socket_id, const string& username, const string& identity
 bool handle_download(int socket_id, const string& identity,  const string& filename);
 bool handle_upload(int socket_id, const string& identity,  const string& filename);
 bool handle_list(int socket_id, const string& identity);
-void handle_rename();
-void handle_delete();
-void handle_logout();
+bool handle_rename(int socket_id, const string& identity,  const string& old_file_name, const string& new_file_name);
+bool handle_delete(int socket_id, const string& identity,  const string& file_name);
+bool handle_logout(int socket_id, const string& identity);
 
 
 /*              PROTOCOL AND CLEAN FUNCTIONS        */

@@ -4,7 +4,7 @@
 
 #include "worker.h"
 
-bool Worker::send_failure_message(unsigned char reason, unsigned char opcode){
+bool Worker::send_failure_message(unsigned char reason, unsigned char opcode, bool multiple){
     message* failure_message;
 
     unsigned char* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
@@ -13,16 +13,53 @@ bool Worker::send_failure_message(unsigned char reason, unsigned char opcode){
         return false;
     }
 
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
+
     unsigned char* encrypted_reason;
     unsigned int encrypted_reason_len;
-    if(symm_encrypt(&reason,sizeof(unsigned char),session_key,
-                    IV_buffer,encrypted_reason,encrypted_reason_len)!=1){
-        cerr<<"Cannot encrypt signed parameters and username"<<endl;
-        free(IV_buffer);
-        return false;
+
+    if(multiple){
+        auto* error = (unsigned char*)malloc(sizeof(reason) + 4*sizeof(unsigned short));
+        int current_len = 0;
+        auto* app = (unsigned char*)malloc(sizeof(unsigned char));
+        memset(app, 0, sizeof(&app));
+
+        memcpy(error, (unsigned char*)sizeof(reason), sizeof(unsigned short));
+        current_len += sizeof(unsigned short);
+        memcpy(error + current_len, &reason, sizeof(reason));
+        current_len += sizeof(reason);
+
+        memcpy(error + current_len, (unsigned char*)sizeof(&app), sizeof(unsigned short));
+        current_len += sizeof(unsigned short);
+        memcpy(error + current_len,app,sizeof(&app));
+        current_len += sizeof(&app);
+
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, error, sizeof(error)});
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, app, sizeof(app)});
+
+        if(symm_encrypt(error,sizeof(error),session_key,
+                        IV_buffer,encrypted_reason,encrypted_reason_len)!=1){
+            cerr<<"Cannot encrypt signed parameters and username"<<endl;
+            free(IV_buffer);
+            return false;
+        }
     }
+    else{
+        if(symm_encrypt(&reason,sizeof(reason),session_key,
+                        IV_buffer,encrypted_reason,encrypted_reason_len)!=1){
+            cerr<<"Cannot encrypt signed parameters and username"<<endl;
+            free(IV_buffer);
+            return false;
+        }
+
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, encrypted_reason, encrypted_reason_len});
+    }
+
     failure_message = build_message(IV_buffer, opcode, encrypted_reason_len, encrypted_reason, true, hmac_key, this->worker_counter);
     send_msg(socket_id, failure_message, true, identity);
+
+    delete failure_message;
+
     return true;
 }
 
@@ -213,7 +250,7 @@ bool Worker::establish_session() {
     string str_username((const char*)recv_username->field, recv_username->field_len-1);
     if(!check_username(str_username)){
         cerr<<"["+identity+"]: "<<"Username does not satisfy constraints"<<endl;
-        send_failure_message(MISSING_USER, AUTH_RESPONSE);
+        send_failure_message(MISSING_USER, AUTH_RESPONSE, false);
         clean_all();
         return false;
     }
@@ -221,10 +258,28 @@ bool Worker::establish_session() {
     this->username = str_username;
     this->identity = "Worker for: "+this->username;
 
+    DIR *dp;
+    struct dirent *ep;
+    string path = "../../UserData";
+    dp = opendir((path + this->username).c_str());
+
+    if(!dp) {
+        cerr<<"["+identity+"]: "<<"Cannot find dedicated storage for user, considered not registered yet"<<endl;
+        send_failure_message(MISSING_USER, AUTH_RESPONSE, false);
+        clean_all();
+        return false;
+    }
+
+    while((ep = readdir(dp)) != nullptr){
+        this->file_list += ep->d_name;
+        this->file_list += "\n";
+    }
+    closedir(dp);
+
     EVP_PKEY* client_pubkey;
     if (!read_pubkey(client_pubkey, string("../Keys/Server/Client_Pub_Keys/" + str_username + "_pubkey"))){
         cerr<<"["+identity+"]: "<<"Cannot read client public key"<<endl;
-        send_failure_message(MISSING_USER, AUTH_RESPONSE);
+        send_failure_message(MISSING_USER, AUTH_RESPONSE, false);
         clean_all();
         return false;
     }
@@ -268,6 +323,7 @@ bool Worker::establish_session() {
     allocatedBuffers.push_back({MESSAGE, m4});
     this->client_counter = 1;
     this->worker_counter = 1;
+
     clean_all();
     return true;
 }

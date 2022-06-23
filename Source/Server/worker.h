@@ -18,6 +18,7 @@ class Worker {
     unsigned int client_counter;
     unsigned char session_key[KEY_LEN];
     unsigned char hmac_key[HMAC_KEY_LEN];
+    string file_list;
     vector<buffer> allocatedBuffers;
     EVP_PKEY* server_privkey;
 public:
@@ -30,9 +31,9 @@ public:
     /*      LOGIC COMMANDS          */
     void* handle_commands();
     static void  *handle_commands_helper(void* context);
-    void handle_download();
+    bool handle_download(message* m1);
     void handle_upload();
-    void handle_list();
+    bool handle_list();
     void handle_rename();
     void handle_delete();
     void handle_logout();
@@ -43,6 +44,6 @@ public:
 
     /*          UTILS               */
     void handleErrors(const string& reason, int exit_code);
-    bool send_failure_message(unsigned char reason, unsigned char opcode);
+    bool send_failure_message(unsigned char reason, unsigned char opcode, bool multiple);
 };
 #endif //SECURE_CLOUD_STORAGE_WORKER_H

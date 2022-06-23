@@ -23,6 +23,8 @@
 #define PAYLOAD_LENGTH_LEN  3
 
 #include <csignal>
+#include <fstream>
+#include <dirent.h>
 #include "signal.h"
 #include "string.h"
 #include "cstring"
