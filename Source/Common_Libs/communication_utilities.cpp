@@ -257,22 +257,38 @@ unsigned char *read_chunk(const string &filename, unsigned int sent_size, int ma
 
     ifstream file;
     file.open(filename, ios::in);
+    if(file.fail()){
+        cerr << "Cannot open the file!" << endl;
+        return nullptr;
+    }
     file.ignore(sent_size);
-    file.read(app, max_read);
+    if(!file.read(app, max_read)){
+        cerr << "Reading from file failed!" << endl;
+        return nullptr;
+    }
 
     memcpy(chunk, app, max_read);
 
     return chunk;
 }
 
-void write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename) {
+bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename) {
     string app = string((const char*) file_chunk, chunk_len);
 
     //TODO set right path
     ofstream outfile;
     outfile.open(filename, std::ios_base::app);
+    if(outfile.fail()){
+        cerr << "Cannot open the file!" << endl;
+        return false;
+    }
     outfile << app;
+    if(outfile.bad()){
+        cerr << "Writing to file failed!" << endl;
+        return false;
+    }
     outfile.close();
+    return true;
 }
 
 bool delete_file(const string &filename){

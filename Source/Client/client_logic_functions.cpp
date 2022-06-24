@@ -270,7 +270,13 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
 
         allocatedBuffers.push_back({CLEAR_BUFFER, file_chunk, file_len});
 
-        write_file(file_chunk, file_len, file_name);
+        if(!write_file(file_chunk, file_len, file_name)){
+            if(!delete_file(file_name)){
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
 
         unsigned int recvd_file = file_len;
 
@@ -331,7 +337,13 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
 
             allocatedBuffers.push_back({CLEAR_BUFFER, payload_i, payload_len_i});
 
-            write_file(payload_i, payload_len_i, file_name);
+            if(!write_file(payload_i, payload_len_i, file_name)) {
+                if (!delete_file(file_name)) {
+                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                            "We suggest to delete the file manually for safety purposes." << endl;
+                }
+                return false;
+            }
             recvd_file += payload_len_i;
         }
     }
