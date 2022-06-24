@@ -12,6 +12,7 @@ using namespace std;
 class Worker {
     int socket_id;
     string username;
+    unsigned short id;
     string identity;
     bool logout_request;
     unsigned int worker_counter;
@@ -23,7 +24,7 @@ class Worker {
     EVP_PKEY* server_privkey;
 public:
     /*      CONSTRUCTOR         */
-    Worker(int socket_id, EVP_PKEY* server_privkey);
+    Worker(int socket_id, EVP_PKEY* server_privkey, unsigned short id);
 
     /*      PROTOCOL MANAGEMENT    */
     bool establish_session();

@@ -3,9 +3,15 @@
 //
 
 #include "worker.h"
+struct ActiveWorker{
+    unsigned short id;
+    Worker* pointer;
+};
+extern vector<ActiveWorker> active_workers;
 
-Worker::Worker(int socket_id, EVP_PKEY* server_privkey) {
-    this->username = to_string(rand() % 100); //temporary name, no guarantees on uniqueness
+Worker::Worker(int socket_id, EVP_PKEY* server_privkey, unsigned short id) {
+    this->id = id;
+    this->username = to_string(id); //temporary name, no guarantees on uniqueness
     this->socket_id = socket_id;
     this->logout_request = false;
     this->worker_counter = 0;
@@ -299,6 +305,10 @@ Worker::~Worker() {
 #pragma optimize("", on)
     clean_all();
     close(this->socket_id);
+    for (auto activeWorker : active_workers){
+        if (activeWorker.id == this->id)
+            activeWorker.pointer = NULL;
+    }
 }
 
 

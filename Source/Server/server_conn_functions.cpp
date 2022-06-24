@@ -7,8 +7,11 @@
 using namespace std;
 
 int connectionSocketListener;
-
-vector<Worker*> active_workers;
+struct ActiveWorker{
+    unsigned short id;
+    Worker* pointer;
+};
+vector<ActiveWorker> active_workers;
 vector<pthread_t> active_threads;
 EVP_PKEY* server_privkey;
 
@@ -64,8 +67,9 @@ void listen_connections() {
         char buff[16];
         client_ip = inet_ntop(AF_INET,(void*)&client_addr.sin_addr,buff,sizeof(buff));
         cout <<"New connection established with " << client_ip <<endl;
-        Worker* w = new Worker(clientConnectionSocket, server_privkey);
-        active_workers.push_back(w);
+        unsigned short id = rand()%100;
+        Worker* w = new Worker(clientConnectionSocket, server_privkey, id);
+        active_workers.push_back({id, w});
         pthread_t pthread;
         pthread_create(&pthread, NULL, &Worker::handle_commands_helper, w);
         active_threads.push_back(pthread);
@@ -86,8 +90,8 @@ void shutdown_server(int received_signal){
     }
 
     for (auto & active_worker : active_workers){
-        if(active_worker)
-            delete active_worker;
+        if(active_worker.pointer)
+            delete active_worker.pointer;
     }
     //TODO clean_all
     //
