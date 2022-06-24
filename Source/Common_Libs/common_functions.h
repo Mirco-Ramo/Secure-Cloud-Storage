@@ -22,7 +22,7 @@ bool get_payload_fields(const unsigned char* total_payload, payload_field* field
 unsigned long get_file_size(const string &filename, bool &file_found);
 unsigned char *read_chunk(const string &filename, unsigned int sent_size, int max_read);
 bool delete_file(const string &filename);
-void write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename);
+bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename);
 
 
 /*          CRYPTO FUNCTIONS        */
