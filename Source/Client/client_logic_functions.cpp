@@ -182,7 +182,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
     }
 
     m1 = build_message(IV_buffer, DOWNLOAD, encrypted_filename_len, encrypted_filename, true, hmac_key, client_counter);
-    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + encrypted_filename_len + DIGEST_LEN){
+    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + (int)encrypted_filename_len + DIGEST_LEN){
         cerr<<"Cannot send DOWNLOAD request to server"<<endl;
         return false;
     }
@@ -351,7 +351,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
     message* m1;
     auto* filename = (unsigned char*)malloc(file_name.size() + 1);
-    memcpy(filename, file_name.c_str(), sizeof(filename));
+    memcpy(filename, file_name.c_str(), file_name.size() + 1);
     unsigned short file_name_size = sizeof(filename);
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
@@ -564,10 +564,10 @@ bool handle_rename(int socket_id, const string& identity,  const string& old_fil
 
     message* m1;
     auto* old_filename = (unsigned char*)malloc(old_file_name.size() + 1);
-    memcpy(old_filename, old_file_name.c_str(), sizeof(old_filename));
+    memcpy(old_filename, old_file_name.c_str(), old_file_name.size() + 1);
     unsigned short old_file_name_size = sizeof(old_filename);
     auto* new_filename = (unsigned char*)malloc(new_file_name.size() + 1);
-    memcpy(new_filename, new_file_name.c_str(), sizeof(new_filename));
+    memcpy(new_filename, new_file_name.c_str(), new_file_name.size() + 1);
     unsigned short new_file_name_size = sizeof(new_filename);
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;

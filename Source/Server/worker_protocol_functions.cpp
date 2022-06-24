@@ -195,7 +195,7 @@ bool Worker::establish_session() {
         return false;
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, m2_payload});
-    unsigned int current_len = 0;
+    int current_len = 0;
 
     memcpy(m2_payload,&encoded_server_pub_dhkey_len,sizeof(unsigned short));
     current_len += sizeof(unsigned short);

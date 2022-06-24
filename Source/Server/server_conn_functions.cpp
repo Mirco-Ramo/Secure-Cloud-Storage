@@ -19,10 +19,11 @@ void handleErrors(const string& reason, int exit_code){
 
 void init() {
     signal(SIGINT,shutdown_server);
+    if (!read_privkey(server_privkey, "../Keys/Server/server_prvkey.pem")){
+        handleErrors("Cannot read server private key", -40);
+    }
 }
 void listen_connections() {
-    //return codes container
-    int ret;
     //server listener address structure
     struct sockaddr_in listener_addr{};
     //last connected client address structure
@@ -41,11 +42,6 @@ void listen_connections() {
     listener_addr.sin_family=AF_INET;
     listener_addr.sin_port=htons(LISTENING_PORT);
     listener_addr.sin_addr.s_addr=INADDR_ANY;
-
-
-    if (!read_privkey(server_privkey, "../Keys/Server/server_prvkey.pem")){
-        handleErrors("Cannot read server private key", -40);
-    }
 
     //bind initialization
     if (bind(connectionSocketListener,(struct sockaddr*)&listener_addr,sizeof(listener_addr))<0)

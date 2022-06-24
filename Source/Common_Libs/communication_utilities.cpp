@@ -34,7 +34,7 @@ message* build_message(unsigned char* iv, unsigned char opcode,
         unsigned char counter_bytes[sizeof(unsigned int)];
         for (int i=0; i<PAYLOAD_LENGTH_LEN; i++)
             payload_len_bytes[i]=(unsigned char)(payload_length>>((PAYLOAD_LENGTH_LEN-1-i)*8));
-        for (int i=0; i<sizeof(unsigned int); i++)
+        for (unsigned int i=0; i<sizeof(unsigned int); i++)
             counter_bytes[i]=(unsigned char)(counter>>((sizeof(unsigned int)-1-i)*8));
 
         unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, m->header.payload_length, sizeof(unsigned int)};
@@ -112,7 +112,7 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
         total_serialized +=DIGEST_LEN;
     }
     ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
-    if(ret < total_serialized){
+    if(ret < (int)total_serialized){
         cout << "["+identity+"]:"<< "Failed to send message " << msg->header.opcode<<endl;
         free(buffer_message);
         return -1;
@@ -126,7 +126,7 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
 
 int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     int ret;
-    unsigned char* buffer_message, *buffer_iv;
+    unsigned char* buffer_message;
     fixed_header h{};
 
     buffer_message = (unsigned char*)malloc(FIXED_HEADER_LENGTH);

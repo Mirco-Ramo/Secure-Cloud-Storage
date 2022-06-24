@@ -914,7 +914,7 @@ int verify_hmac(message* m, unsigned int counter, unsigned char* hmac_key){
     unsigned char counter_bytes[sizeof(unsigned int)];
     for (int i=0; i<PAYLOAD_LENGTH_LEN; i++)
         payload_len_bytes[i]=(unsigned char)(m->header.payload_length>>((PAYLOAD_LENGTH_LEN-1-i)*8));
-    for (int i=0; i<sizeof(unsigned int); i++)
+    for (unsigned int i=0; i<sizeof(unsigned int); i++)
         counter_bytes[i]=(unsigned char)(counter>>((sizeof(unsigned int)-1-i)*8));
 
     unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, m->header.payload_length, sizeof(unsigned int)};

@@ -168,7 +168,7 @@ bool Worker::handle_list() {
     }
 
     m2 = build_message(IV_buffer, LIST_RES, encrypted_payload_len, encrypted_payload, true, this->hmac_key, this->worker_counter);
-    if(send_msg(this->socket_id, m2, true, this->identity) < FIXED_HEADER_LENGTH + encrypted_payload_len + DIGEST_LEN){
+    if(send_msg(this->socket_id, m2, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
         cerr<<"Cannot send LIST respose to server"<<endl;
         return false;
     }
@@ -251,7 +251,7 @@ bool Worker::handle_download(message* m1) {
 
     //TODO check that file path is correct
 
-
+    return true;
 }
 
 void Worker::handle_upload() {
