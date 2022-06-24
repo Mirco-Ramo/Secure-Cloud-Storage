@@ -64,6 +64,12 @@ void listen_connections() {
         if((clientConnectionSocket = accept(connectionSocketListener,(struct sockaddr*)&client_addr,&len))<0)
             handleErrors("Accept on connection listener not succeeded", LISTENER_SOCKET_ERROR);
 
+        timeval timeout = {300,0};
+        if (setsockopt(clientConnectionSocket,SOL_SOCKET,SO_RCVTIMEO,(const char*) &timeout,sizeof(timeval))==-1){
+            cerr<<"Cannot set the timeout on the server"<<endl;
+            return;
+        }
+
         string client_ip;
         char buff[16];
         client_ip = inet_ntop(AF_INET,(void*)&client_addr.sin_addr,buff,sizeof(buff));
