@@ -19,6 +19,9 @@ void handleErrors(const string& reason, int exit_code){
 
 void init() {
     signal(SIGINT,shutdown_server);
+    signal(SIGTERM,shutdown_server);
+    signal(SIGQUIT,shutdown_server);
+    signal(SIGSTOP,shutdown_server);
     if (!read_privkey(server_privkey, "../Keys/Server/server_prvkey.pem")){
         handleErrors("Cannot read server private key", -40);
     }

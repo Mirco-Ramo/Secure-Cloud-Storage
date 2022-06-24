@@ -39,6 +39,7 @@ int connect_to_server(sockaddr_in* server_addr, int* c_socket){
 void shutdown(int received_signal){
     //TODO disconnect()
     //TODO clean_all(resources);
+    cout<<"Shutting down client"<<endl;
     clean_counters();
     clean_all();
 #pragma optimize("", off)
