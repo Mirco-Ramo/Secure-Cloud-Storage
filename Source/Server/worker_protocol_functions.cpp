@@ -264,24 +264,6 @@ bool Worker::establish_session() {
     this->username = str_username;
     this->identity = "Worker for: "+this->username;
 
-    DIR *dp;
-    struct dirent *ep;
-    string path = "../UserData/";
-    dp = opendir((path + this->username).c_str());
-
-    if(!dp) {
-        cerr<<"["+identity+"]: "<<"Cannot find dedicated storage for user, considered not registered yet"<<endl;
-        send_failure_message(MISSING_USER, AUTH_RESPONSE, false);
-        clean_all();
-        return false;
-    }
-
-    while((ep = readdir(dp)) != nullptr){
-        this->file_list += ep->d_name;
-        this->file_list += "\n";
-    }
-    closedir(dp);
-
     EVP_PKEY* client_pubkey;
     if (!read_pubkey(client_pubkey, string("../Keys/Server/Client_Pub_Keys/" + str_username + "_pubkey"))){
         cerr<<"["+identity+"]: "<<"Cannot read client public key"<<endl;
