@@ -10,6 +10,7 @@
 using namespace std;
 /*          SECURE CODING           */
 bool check_username(const std::string& username);
+bool check_permissions(const string& filename);
 bool check_file_name(const std::string& file_name);
 bool command_ok(const std::string& command);
 

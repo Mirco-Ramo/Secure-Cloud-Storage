@@ -16,14 +16,50 @@ bool check_username(const string& username){
     return true;
 }
 
+char* canonicalize(const string& file_name){
+    //canonicalization//
+    //e.g.   ../file.txt  =>  /home/user/myfiles/file.txt
+    char* canon_file_name = realpath(file_name.c_str(), NULL);
+    if(!canon_file_name)
+        return NULL;
+    return canon_file_name;
+}
+
+bool check_permissions(const string& filename){
+    const char* filename_chr = canonicalize(filename.c_str());
+    if(access(filename_chr, R_OK) || access(filename_chr, W_OK)){
+        return false;
+    }
+}
+
 bool check_file_name(const string& file_name){
-    //TODO
-    //canonicalization-tokenization
-    //check size
+    char* canon_file_name = canonicalize(file_name);
+    if(canon_file_name == NULL)
+        return false;
 
+    if(strncmp(canon_file_name, "/home/", strlen("/home/")) != 0) {
+        free(canon_file_name);
+        return false;
+    }
+
+    string canon_string_name(canon_file_name);
+    free(canon_file_name);
+
+    //tokenization
+    //e.g.      /home/user/myfiles/file.txt  => file.txt
+    size_t pos = 0;
+    string filename_portion;
+    string delimiter = "/";
+    while ((pos = canon_string_name.find(delimiter)) != std::string::npos) {
+        filename_portion = canon_string_name.substr(0, pos);
+        canon_string_name.erase(0, pos + delimiter.length());
+    }
+    filename_portion = canon_string_name;
+
+    //whitelisting of the final part and checking that contains a point for the extension
     char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-.";
-
-    if(file_name.find_first_not_of(ok_chars)!=string::npos){
+    if(filename_portion.find_first_not_of(ok_chars)!=string::npos && filename_portion.find('.') != string::npos){
+        cerr<<"Filename does not satisfy constraints"<<endl;
         return false;
     }
     return true;
