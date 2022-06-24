@@ -182,7 +182,7 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     }
 
     ret = recv(socket_id,(void*)buffer_message, payload_length, 0);
-    if(ret < payload_length){
+    if(ret < (int)payload_length){
         free(buffer_message);
         cout << "["+identity+"]:"<< "Payload receive failed" << endl;
         return -1;
@@ -193,7 +193,7 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     if(!hmac)
         return FIXED_HEADER_LENGTH + ret;
 
-    unsigned char* buffer_hmac = (unsigned char*)malloc(DIGEST_LEN);
+    auto* buffer_hmac = (unsigned char*)malloc(DIGEST_LEN);
     if(!buffer_hmac){
         cout << "["+identity+"]:"<< "Cannot allocate buffer to receive hmac" << endl;
         return -1;

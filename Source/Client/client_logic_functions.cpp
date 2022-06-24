@@ -395,7 +395,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     }
 
     m1 = build_message(IV_buffer, UPLOAD_REQ, encrypted_payload_len, encrypted_payload, true, hmac_key, client_counter);
-    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + encrypted_payload_len + DIGEST_LEN){
+    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
         cerr<<"Cannot send UPLOAD_REQ request to server"<<endl;
         return false;
     }
@@ -612,7 +612,7 @@ bool handle_rename(int socket_id, const string& identity,  const string& old_fil
     }
 
     m1 = build_message(IV_buffer, RENAME, encrypted_payload_len, encrypted_payload, true, hmac_key, client_counter);
-    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + encrypted_payload_len + DIGEST_LEN){
+    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
         cerr<<"Cannot send RENAME request to server"<<endl;
         return false;
     }
@@ -714,7 +714,7 @@ bool handle_delete(int socket_id, const string& identity,  const string& file_na
     }
 
     m1 = build_message(IV_buffer, DELETE, encrypted_filename_len, encrypted_filename, true, hmac_key, client_counter);
-    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + encrypted_filename_len + DIGEST_LEN){
+    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + (int)encrypted_filename_len + DIGEST_LEN){
         cerr<<"Cannot send DELETE request to server"<<endl;
         return false;
     }

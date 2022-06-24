@@ -199,7 +199,7 @@ bool begin_session(int socket_id, const string& username, const string& identity
         return false;
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, m3_clear_payload, m3_clear_payload_len});
-    unsigned int current_len = 0;
+    int current_len = 0;
 
     memcpy(m3_clear_payload,&client_signed_len,sizeof(unsigned short));
     current_len += sizeof(unsigned short);

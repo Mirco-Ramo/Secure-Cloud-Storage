@@ -216,7 +216,7 @@ bool Worker::handle_list() {
         }
 
         m2i = build_message(IV_buffer_i, LIST_DATA, encrypted_payload_len_i, encrypted_payload_i, true, this->hmac_key, this->worker_counter);
-        if(send_msg(this->socket_id, m2i, true, this->identity) < FIXED_HEADER_LENGTH + encrypted_payload_len_i + DIGEST_LEN){
+        if(send_msg(this->socket_id, m2i, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
             cerr<<"Cannot send LIST_DATA respose to client"<<endl;
             return false;
         }
