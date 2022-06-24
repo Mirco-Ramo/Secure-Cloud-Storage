@@ -14,6 +14,7 @@ struct ActiveWorker{
 vector<ActiveWorker> active_workers;
 vector<pthread_t> active_threads;
 EVP_PKEY* server_privkey;
+int clientConnectionSocket;
 
 void handleErrors(const string& reason, int exit_code){
     cerr<<reason<<endl;
@@ -37,7 +38,7 @@ void listen_connections() {
     //message output length
     socklen_t len;
     //speaker client from accept
-    int clientConnectionSocket;
+
 
     if ((connectionSocketListener=socket(AF_INET,SOCK_STREAM,0))==-1)
         handleErrors("Listener socket initialization failed", LISTENER_SOCKET_ERROR);
@@ -84,6 +85,7 @@ void shutdown_server(int received_signal){
 
 
     EVP_PKEY_free(server_privkey);
+    close(connectionSocketListener);
 
     for(auto &active_thread : active_threads){
         pthread_kill(active_thread, SIGTERM);
