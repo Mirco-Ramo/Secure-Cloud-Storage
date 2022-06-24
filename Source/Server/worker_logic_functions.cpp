@@ -14,7 +14,7 @@ string GetStdoutFromCommand(string cmd) {
 
     string data;
     FILE * stream;
-    const int max_buffer = 256;
+    const unsigned int max_buffer = MAX_PAYLOAD_LENGTH;
     char buffer[max_buffer];
     cmd.append(" 2>&1");
 
