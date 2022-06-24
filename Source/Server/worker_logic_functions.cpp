@@ -128,7 +128,7 @@ bool Worker::handle_list() {
 
     auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
     if(!IV_buffer){
-        cerr<<"Cannot allocate buffer for IV"<<endl;
+        cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
         return false;
     }
     this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
@@ -136,7 +136,7 @@ bool Worker::handle_list() {
     unsigned short clear_payload_len = response_size + list_size_size + sizeof(this->file_list) + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
     if(!clear_payload){
-        cerr<<"Cannot allocate buffer for m2"<<endl;
+        cerr<<"["+this->identity+"]: Cannot allocate buffer for m2"<<endl;
         return false;
     }
     this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_payload, clear_payload_len});
@@ -163,19 +163,19 @@ bool Worker::handle_list() {
     this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload, encrypted_payload_len});
 
     if(ret==0) {
-        cerr << "Cannot encrypt message M2!" << endl;
+        cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
         return false;
     }
 
     m2 = build_message(IV_buffer, LIST_RES, encrypted_payload_len, encrypted_payload, true, this->hmac_key, this->worker_counter);
     if(send_msg(this->socket_id, m2, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
-        cerr<<"Cannot send LIST respose to server"<<endl;
+        cerr<<"["+this->identity+"]: Cannot send LIST respose to server"<<endl;
         return false;
     }
     delete m2;
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
@@ -189,7 +189,7 @@ bool Worker::handle_list() {
 
         auto* IV_buffer_i = (unsigned char*)malloc(IV_LENGTH);
         if(!IV_buffer_i){
-            cerr<<"Cannot allocate buffer for IV"<<endl;
+            cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
             return false;
         }
         this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
@@ -199,7 +199,7 @@ bool Worker::handle_list() {
         //TODO check that the substring here is right
         memcpy(clear_payload_i, this->file_list.substr(sent_size, to_send - 1).c_str(), to_send);
         if(!clear_payload_i){
-            cerr<<"Cannot allocate buffer for m2i"<<endl;
+            cerr<<"["+this->identity+"]: Cannot allocate buffer for m2i"<<endl;
             return false;
         }
         unsigned short clear_payload_len_i = sizeof(clear_payload_i);
@@ -211,19 +211,19 @@ bool Worker::handle_list() {
         this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i, encrypted_payload_len_i});
 
         if(ret==0) {
-            cerr << "Cannot encrypt message M2!" << endl;
+            cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
             return false;
         }
 
         m2i = build_message(IV_buffer_i, LIST_DATA, encrypted_payload_len_i, encrypted_payload_i, true, this->hmac_key, this->worker_counter);
         if(send_msg(this->socket_id, m2i, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
-            cerr<<"Cannot send LIST_DATA respose to client"<<endl;
+            cerr<<"["+this->identity+"]: Cannot send LIST_DATA respose to client"<<endl;
             return false;
         }
         delete m2i;
 
         if(this->worker_counter == UINT_MAX){
-            cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+            cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
             return false;
         }
         this->worker_counter++;
@@ -243,7 +243,7 @@ bool Worker::handle_download(message* m1) {
     ret = symm_decrypt(m1->payload, m1->header.payload_length,
                        session_key, m1->header.initialization_vector,payload,payload_len);
     if(ret==0) {
-        cerr << "Cannot decrypt message M1!" << endl;
+        cerr << "["+this->identity+"]: Cannot decrypt message M1!" << endl;
         return false;
     }
 
@@ -292,6 +292,7 @@ void Worker::handle_logout() {
 }
 
 Worker::~Worker() {
+    cout<<"["+this->identity+"]: Leaving..."<<endl;
 #pragma optimize("", off)
     memset(this->session_key, 0, KEY_LEN);
     memset(this->hmac_key, 0, HMAC_KEY_LEN);
@@ -368,8 +369,10 @@ void Worker::clean_all(){
                 }
                 break;
             case MESSAGE:
-                delete (message*)pointer_elem->content;
-                break;
+                if(pointer_elem->content) {
+                    delete (message *) pointer_elem->content;
+                    break;
+                }
             default:
                 cout<<"Cannot free buffer"<<endl;
                 break;

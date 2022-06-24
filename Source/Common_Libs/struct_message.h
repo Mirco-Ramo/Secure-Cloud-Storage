@@ -57,7 +57,8 @@ struct message{
 #pragma optimize("", off)
         memset(payload, 0, header.payload_length);
 #pragma optimize("", on)
-        free(payload);
+        if(payload)
+            free(payload);
     }
 };
 

@@ -356,8 +356,10 @@ void clean_all(){
                 }
                 break;
             case MESSAGE:
-                delete (message*)pointer_elem->content;
-                break;
+                if(pointer_elem->content) {
+                    delete (message *) pointer_elem->content;
+                    break;
+                }
             default:
                 cout<<"Cannot free buffer"<<endl;
                 break;
