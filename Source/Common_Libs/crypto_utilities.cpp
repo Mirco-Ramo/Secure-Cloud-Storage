@@ -832,21 +832,23 @@ X509* decode_certificate (unsigned char* to_deserialize, unsigned short buffer_l
 /*                  HMAC                        */
 
 unsigned int prepare_buffer_for_hmac(unsigned char*& buffer_mac,unsigned int& buffer_mac_len, unsigned char** inputs, unsigned int* input_lengths, unsigned int inputs_number){
-    unsigned short total_input_len;
-    for(unsigned short i=0; i<inputs_number; ++i){
+    unsigned short total_input_len=0;
+    for(unsigned int i=0; i<inputs_number; ++i){
         total_input_len += input_lengths[i];
     }
 
     buffer_mac_len = total_input_len;
     buffer_mac = (unsigned char*) malloc(buffer_mac_len);
     if(!buffer_mac){
-        cerr << "Malloc fails\n";
+        cerr << "Cannot allocate buffer for hmac\n";
         return 0;
     }
     unsigned int total_buffered=0;
-    for(unsigned short i=0; i<inputs_number; ++i){
-        memcpy(buffer_mac+total_buffered, inputs[i], input_lengths[i]);
-        total_buffered+=input_lengths[i];
+    for(unsigned int i=0; i<inputs_number; ++i){
+        if(input_lengths[i]>0) {
+            memcpy(buffer_mac + total_buffered, inputs[i], input_lengths[i]);
+            total_buffered += input_lengths[i];
+        }
     }
     return total_buffered;
 }

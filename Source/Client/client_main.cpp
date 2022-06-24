@@ -169,28 +169,6 @@ int main(int argc, char** argv) {
             cerr << "Invalid command."<<endl;
             continue;
         }
-        /*
-        message* m;
-        unsigned char* iv_buf = (unsigned char*)malloc(IV_LENGTH*sizeof(unsigned char));
-        unsigned char opcode='a';
-        for(int i=0; i<IV_LENGTH*sizeof(unsigned char); i+=sizeof(unsigned char)){
-            *(iv_buf+i)=(unsigned char)(opcode+i);
-            printf("%x", *(iv_buf+i));
-        }
-        m = build_message(iv_buf, opcode, command.size()+1, (unsigned char *)(command.c_str()), false);
-        send_msg(client_socket, m, false, identity);
-        if(command.size()>30)
-            logout_request=true;
-
-        m = new message();
-        int ret = recv_msg(client_socket, m, false, identity);
-        cout<<"Return value was: "<<ret<<endl;
-        cout<<"Payload length is: "<<m->header.payload_length<<endl;
-
-        string payload = (const char*)m->payload;
-        cout<<"I received: "<<payload<<endl;
-        free(m->payload);
-         */
     }
 
     close(client_socket);

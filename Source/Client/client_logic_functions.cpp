@@ -787,7 +787,7 @@ bool handle_logout(int socket_id, const string& identity){
 
     message* m1;
     m1 = build_message(NULL, LOGOUT, 0, NULL, true, hmac_key, client_counter);
-    if(send_msg(socket_id, m1, false, identity) < FIXED_HEADER_LENGTH + DIGEST_LEN){
+    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + DIGEST_LEN){
         cerr<<"Cannot send LOGOUT request to server"<<endl;
         return false;
     }

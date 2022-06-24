@@ -34,12 +34,13 @@ void* Worker::handle_commands() {
     if(!establish_session())
         handleErrors("["+this->identity+"]: Fatal error: cannot perform key exchange protocol with client", 10);
 
+    cout<<"["+this->identity+"]: Session established"<<endl;
     this->logout_request = false;
     while(!this->logout_request){
         int ret;
         auto* m1 = new message();
         if(recv_msg(this->socket_id, m1, true, this->identity)<=0){
-            cerr<<"Cannot receive M2 from server"<<endl;
+            cerr<<"["+this->identity+"]: Cannot receive request from client"<<endl;
             break;
         }
 
@@ -48,27 +49,29 @@ void* Worker::handle_commands() {
                 this->allocatedBuffers.push_back({MESSAGE, m1});
                 ret = verify_hmac(m1, this->client_counter, this->hmac_key);
                 if(ret != 1){
-                    cerr << "HMAC is not matching, closing connection" << endl;
+                    cerr << "["+this->identity+"]: HMAC is not matching, closing connection" << endl;
                     send_failure_message(WRONG_FORMAT, LIST_RES, true);
                     break;
                 }
 
                 if(m1->header.payload_length != 0){
-                    cerr << "Payload is not empty! I don't trust you!" << endl;
+                    cerr << "["+this->identity+"]: Payload is not empty! I don't trust you!" << endl;
                     send_failure_message(WRONG_FORMAT, LIST_RES, true);
                     break;
                 }
 
                 if(this->client_counter == UINT_MAX){
-                    cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+                    cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
                     break;
                 }
                 this->client_counter++;
 
                 if(!handle_list()){
                     handleErrors("["+this->identity+"]: Fatal error: error while completing LIST function", 11);
+                    break;
                 }
                 clean_all();
+                break;
             case DOWNLOAD:
                 this->allocatedBuffers.push_back({MESSAGE, m1});
                 ret = verify_hmac(m1, this->client_counter, this->hmac_key);

@@ -18,12 +18,14 @@ message* build_message(unsigned char* iv, unsigned char opcode,
     h->payload_length = payload_length;
     message* m = new message();
     m->header = *h;
-    m->payload = (unsigned char*)malloc(m->header.payload_length);
-    if(!m->payload){
-        cerr<<"Cannot allocate buffer to build message"<<endl;
-        return NULL;
+    if(payload && payload_length>0) {
+        m->payload = (unsigned char *) malloc(m->header.payload_length);
+        if (!m->payload) {
+            cerr << "Cannot allocate buffer to build message" << endl;
+            return NULL;
+        }
+        memcpy(m->payload, payload, payload_length);
     }
-    memcpy(m->payload, payload, payload_length);
     if(hmac){
         unsigned char* buffer_mac;
         unsigned int buffer_mac_len;
@@ -35,8 +37,8 @@ message* build_message(unsigned char* iv, unsigned char opcode,
         for (int i=0; i<sizeof(unsigned int); i++)
             counter_bytes[i]=(unsigned char)(counter>>((sizeof(unsigned int)-1-i)*8));
 
-        unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, payload_length, sizeof(unsigned int)};
-        unsigned char* inputs[] = {iv, &opcode, payload_len_bytes, payload, counter_bytes};
+        unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, m->header.payload_length, sizeof(unsigned int)};
+        unsigned char* inputs[] = {m->header.initialization_vector, &m->header.opcode, payload_len_bytes, m->payload, counter_bytes};
         unsigned int inputs_number=5; //iv, opcode, payload_length, payload, counter
         if (prepare_buffer_for_hmac(buffer_mac, buffer_mac_len, inputs, input_lengths, inputs_number)!=FIXED_HEADER_LENGTH+payload_length+sizeof(unsigned int)){
             cerr<<"Impossible to create buffer for hmac: Message build aborted";
