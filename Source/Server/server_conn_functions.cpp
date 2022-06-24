@@ -79,8 +79,8 @@ void listen_connections() {
 
 void shutdown_server(int received_signal){
     cout<<"Shutting down server"<<endl;
-    //signal(SIGINT, SIG_IGN);
-    //signal(SIGTERM, SIG_IGN);
+    signal(SIGINT, SIG_IGN);
+    signal(SIGTERM, SIG_IGN);
 
 
     EVP_PKEY_free(server_privkey);
