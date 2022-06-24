@@ -70,6 +70,7 @@ void listen_connections() {
             return;
         }
 
+
         string client_ip;
         char buff[16];
         client_ip = inet_ntop(AF_INET,(void*)&client_addr.sin_addr,buff,sizeof(buff));
