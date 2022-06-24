@@ -9,6 +9,49 @@ struct ActiveWorker{
 };
 extern vector<ActiveWorker> active_workers;
 
+/*          UTILITY FOR LOGIC FUNCTIONS         */
+string GetStdoutFromCommand(string cmd) {
+
+    string data;
+    FILE * stream;
+    const int max_buffer = 256;
+    char buffer[max_buffer];
+    cmd.append(" 2>&1");
+
+    stream = popen(cmd.c_str(), "r");
+    if (stream) {
+        while (!feof(stream))
+            if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+        pclose(stream);
+    }
+    return data;
+}
+
+string get_file_list_as_string(){
+    GetStdoutFromCommand("ls");
+}
+
+vector<string> get_file_list_as_vector(){
+    vector<string> result;
+    string files = get_file_list_as_string();
+    size_t pos = 0;
+    string single_file;
+    string delimiter = "\n";
+    while ((pos = files.find(delimiter)) != std::string::npos) {
+        single_file = files.substr(0, pos);
+        result.push_back(single_file);
+        files.erase(0, pos + delimiter.length());
+    }
+    return result;
+}
+
+bool check_filename_already_existing(string filename){
+    string find = GetStdoutFromCommand("find -name "+filename);
+    if(find.size()>0)
+        return true;
+    return false;
+}
+
 Worker::Worker(int socket_id, EVP_PKEY* server_privkey, unsigned short id) {
     this->id = id;
     this->username = to_string(id); //temporary name, no guarantees on uniqueness
