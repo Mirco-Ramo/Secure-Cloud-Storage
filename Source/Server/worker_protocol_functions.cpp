@@ -260,7 +260,7 @@ bool Worker::establish_session() {
 
     DIR *dp;
     struct dirent *ep;
-    string path = "../../UserData";
+    string path = "../UserData/";
     dp = opendir((path + this->username).c_str());
 
     if(!dp) {
