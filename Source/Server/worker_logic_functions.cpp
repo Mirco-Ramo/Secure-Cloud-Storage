@@ -21,7 +21,7 @@ void Worker::handleErrors(const string& reason, int exit_code){
         clean_all();
         delete this;
         //TODO this is a temporary function
-        exit(exit_code);
+        pthread_exit((void*)(1));
     }
 }
 
@@ -211,7 +211,7 @@ bool Worker::handle_list() {
         this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i, encrypted_payload_len_i});
 
         if(ret==0) {
-            cerr << "Cannot encrypt message M2i!" << endl;
+            cerr << "Cannot encrypt message M2!" << endl;
             return false;
         }
 

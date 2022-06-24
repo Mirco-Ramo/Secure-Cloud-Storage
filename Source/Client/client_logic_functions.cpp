@@ -494,7 +494,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             }
 
             m3i = build_message(IV_buffer_i, UPLOAD_DATA, encrypted_payload_len_i, encrypted_payload_i, true, hmac_key, client_counter);
-            if(send_msg(socket_id, m3i, true, identity) < FIXED_HEADER_LENGTH + encrypted_payload_len_i + DIGEST_LEN){
+            if(send_msg(socket_id, m3i, true, identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
                 cerr<<"Cannot send UPLOAD_DATA request to server"<<endl;
                 return false;
             }
