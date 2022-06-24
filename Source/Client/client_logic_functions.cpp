@@ -91,10 +91,6 @@ bool handle_list(int socket_id, const string& identity){
         cerr << "Error in size of the list" << endl;
         return false;
     }
-    else if (list_size->field_len == 0) {
-        cout << "You have no files in the cloud storage! Upload something with the UPLOAD command" << endl << PROMPT;
-        return true;
-    }
     else{
         unsigned int list_len = MAX_PAYLOAD_LENGTH - response->field_len - list_size->field_len;
         auto* list = (unsigned char*)malloc(list_len);
@@ -363,8 +359,10 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
         cerr << "The file is too big to be sent over the network, sorry!";
         return true;
     }
-    file_size = (unsigned int)file_size;
-    unsigned short file_size_len = sizeof(file_size);
+    auto* char_file_size = (unsigned char*)malloc(sizeof(unsigned int));
+    auto int_file_size = (unsigned int)file_size;
+    memcpy(char_file_size, &int_file_size, sizeof(unsigned int));
+    unsigned short file_size_len = sizeof(char_file_size);
 
     message* m1;
     auto* filename = (unsigned char*)malloc(file_name.size() + 1);
@@ -382,7 +380,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
 
-    unsigned short clear_payload_len = file_name_size + file_size + 2*sizeof(unsigned short);
+    unsigned short clear_payload_len = file_name_size + int_file_size + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
     if(!clear_payload){
         cerr<<"Cannot allocate buffer for m1"<<endl;
@@ -399,7 +397,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
     memcpy(clear_payload + current_len, &file_size_len, sizeof(unsigned short));
     current_len += sizeof(unsigned short);
-    memcpy(clear_payload + current_len,&file_size,file_size);
+    memcpy(clear_payload + current_len,&char_file_size,file_size_len);
 
     ret = symm_encrypt(clear_payload, clear_payload_len, session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
@@ -478,7 +476,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     }
     else{
         unsigned int sent_size = 0;
-        while(sent_size < file_size){
+        while(sent_size < int_file_size){
 
             message* m3i;
             unsigned int encrypted_payload_len_i;
@@ -492,7 +490,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
 
             auto* clear_payload_i = read_chunk(file_name, sent_size,
-                                               (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > file_size ? file_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN);
+                                               (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_file_size ? int_file_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN);
             if(!clear_payload_i){
                 cerr<<"Cannot allocate buffer for m3i"<<endl;
                 return false;
@@ -874,6 +872,10 @@ bool handle_logout(int socket_id, const string& identity){
 
 void print_list(unsigned char *list, unsigned int list_len) {
     string app = string((const char*) list, list_len);
+    if(app == "\n"){
+        cout << "Looks like your storage is empty! Upload something using the UPLOAD command" << endl << PROMPT;
+        return;
+    }
     cout << app;
     app = "";
 }

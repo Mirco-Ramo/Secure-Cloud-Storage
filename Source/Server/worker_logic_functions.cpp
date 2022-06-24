@@ -18,7 +18,7 @@ Worker::Worker(int socket_id, EVP_PKEY* server_privkey, unsigned short id) {
     this->client_counter = 0;
     this->identity = "Worker for: "+this->username;
     this->server_privkey = server_privkey;
-    this->file_list = "";
+    this->file_list = "\n";
 }
 
 void Worker::handleErrors(const string& reason, int exit_code){
@@ -44,6 +44,7 @@ void* Worker::handle_commands() {
     this->logout_request = false;
     while(!this->logout_request){
         int ret;
+        bool err = false;
         auto* m1 = new message();
         if(recv_msg(this->socket_id, m1, true, this->identity)<=0){
             cerr<<"["+this->identity+"]: Cannot receive request from client"<<endl;
@@ -58,23 +59,27 @@ void* Worker::handle_commands() {
                 if(ret != 1){
                     cerr << "["+this->identity+"]: HMAC is not matching, closing connection" << endl;
                     send_failure_message(WRONG_FORMAT, LIST_RES, true);
+                    err = true;
                     break;
                 }
 
                 if(m1->header.payload_length != 0){
                     cerr << "["+this->identity+"]: Payload is not empty! I don't trust you!" << endl;
                     send_failure_message(WRONG_FORMAT, LIST_RES, true);
+                    err = true;
                     break;
                 }
 
                 if(this->client_counter == UINT_MAX){
                     cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
+                    err = true;
                     break;
                 }
                 this->client_counter++;
 
                 if(!handle_list()){
                     handleErrors("["+this->identity+"]: Fatal error: error while completing LIST function", 11);
+                    err = true;
                     break;
                 }
                 clean_all();
@@ -85,22 +90,48 @@ void* Worker::handle_commands() {
                 if(ret != 1){
                     cerr << "HMAC is not matching, closing connection" << endl;
                     send_failure_message(WRONG_FORMAT, DOWNLOAD_RES, true);
+                    err = true;
                     break;
                 }
 
                 if(this->client_counter == UINT_MAX){
                     cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+                    err = true;
                     break;
                 }
                 this->client_counter++;
 
                 if(!handle_download(m1)){
                     handleErrors("["+this->identity+"]: Fatal error: error while completing DOWNLOAD function", 12);
+                    err = true;
+                    break;
                 }
                 clean_all();
                 break;
             case UPLOAD_REQ:
+                this->allocatedBuffers.push_back({MESSAGE, m1});
+                ret = verify_hmac(m1, this->client_counter, this->hmac_key);
+                if(ret != 1){
+                    cerr << "HMAC is not matching, closing connection" << endl;
+                    send_failure_message(WRONG_FORMAT, UPLOAD_RES, true);
+                    err = true;
+                    break;
+                }
 
+                if(this->client_counter == UINT_MAX){
+                    cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+                    err = true;
+                    break;
+                }
+                this->client_counter++;
+
+                if(!handle_upload(m1)){
+                    handleErrors("["+this->identity+"]: Fatal error: error while completing UPLOAD function", 12);
+                    err = true;
+                    break;
+                }
+                clean_all();
+                break;
             case RENAME:
 
             case DELETE:
@@ -111,7 +142,8 @@ void* Worker::handle_commands() {
                 delete m1;
                 clean_all();
         }
-
+        if(err)
+            break;
 
     }
 
@@ -126,8 +158,13 @@ bool Worker::handle_list() {
     message* m2;
 
     auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    unsigned char clear_response = REQ_OK;
+    memcpy(response, &clear_response, sizeof(unsigned short));
     unsigned short response_size = sizeof(response);
+
     auto* list_size = (unsigned char*)malloc(sizeof(this->file_list));
+    unsigned int int_list_size = (unsigned int) sizeof(this->file_list);
+    memcpy(list_size, &int_list_size, sizeof(this->file_list));
     unsigned short list_size_size = sizeof(list_size);
 
     unsigned int encrypted_payload_len;
@@ -143,7 +180,10 @@ bool Worker::handle_list() {
     }
     this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
 
-    unsigned short clear_payload_len = response_size + list_size_size + sizeof(this->file_list) + 2*sizeof(unsigned short);
+    unsigned int first_send = MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short) > int_list_size ?
+                              int_list_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short);
+
+    unsigned short clear_payload_len = response_size + list_size_size + first_send + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
     if(!clear_payload){
         cerr<<"["+this->identity+"]: Cannot allocate buffer for m2"<<endl;
@@ -163,9 +203,7 @@ bool Worker::handle_list() {
     memcpy(clear_payload + current_len,list_size,list_size_size);
     current_len += list_size_size;
 
-    memcpy(clear_payload + current_len,this->file_list.c_str(),
-           (MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short)) > sizeof(file_list) ? sizeof(file_list) : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short));
-    current_len += list_size_size;
+    memcpy(clear_payload + current_len,this->file_list.c_str(),first_send);
 
     ret = symm_encrypt(clear_payload, clear_payload_len, this->session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
@@ -190,8 +228,8 @@ bool Worker::handle_list() {
     }
     this->worker_counter++;
 
-    unsigned int sent_size = (MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short)) > sizeof(file_list) ? sizeof(file_list) : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short);
-    while(sent_size < sizeof(this->file_list)){
+    unsigned int sent_size = first_send;
+    while(sent_size < int_list_size){
 
         message* m2i;
         unsigned int encrypted_payload_len_i;
@@ -204,7 +242,7 @@ bool Worker::handle_list() {
         }
         this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
 
-        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > sizeof(this->file_list) - sent_size ? sizeof(this->file_list) - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_list_size - sent_size ? int_list_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
         auto* clear_payload_i = (unsigned char*)malloc(to_send);
         memcpy(clear_payload_i, this->file_list.substr(sent_size, to_send).c_str(), to_send);
         if(!clear_payload_i){
@@ -226,7 +264,7 @@ bool Worker::handle_list() {
 
         m2i = build_message(IV_buffer_i, LIST_DATA, encrypted_payload_len_i, encrypted_payload_i, true, this->hmac_key, this->worker_counter);
         if(send_msg(this->socket_id, m2i, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
-            cerr<<"["+this->identity+"]: Cannot send LIST_DATA respose to client"<<endl;
+            cerr<<"["+this->identity+"]: Cannot send LIST_DATA response to client"<<endl;
             return false;
         }
         delete m2i;
@@ -258,12 +296,154 @@ bool Worker::handle_download(message* m1) {
 
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
-    //TODO check that file path is correct
+    string filename = string((const char*) payload, payload_len);
+
+    if(!check_filename_not_traversing(filename)){
+        cerr << "The name of the file is not acceptable!" << endl;
+        send_failure_message(INVALID_FILENAME, DOWNLOAD_RES, true);
+        return true;
+    }
+
+    bool file_found;
+
+    unsigned long file_size = get_file_size(filename, file_found);
+    if(!file_found){
+        cerr << "File not found, please check the path and try again!";
+        send_failure_message(MISSING_FILE, DOWNLOAD_RES, true);
+        return true;
+    }
+
+    auto* char_file_size = (unsigned char*)malloc(sizeof(unsigned int));
+    auto int_file_size = (unsigned int)file_size;
+    memcpy(char_file_size, &int_file_size, sizeof(unsigned int));
+    unsigned short file_size_len = sizeof(char_file_size);
+
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, char_file_size, file_size_len});
+
+    auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    unsigned char clear_response = REQ_OK;
+    memcpy(response, &clear_response, sizeof(unsigned short));
+    unsigned short response_size = sizeof(response);
+
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
+
+    auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
+    if(!IV_buffer){
+        cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
+        return false;
+    }
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
+
+    unsigned int first_send = MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - file_size_len - 2*sizeof(unsigned short) > int_file_size ?
+                     int_file_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - file_size_len - 2*sizeof(unsigned short);
+
+    unsigned short clear_payload_len = response_size + int_file_size + first_send + 2*sizeof(unsigned short);
+    auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
+    if(!clear_payload){
+        cerr<<"["+this->identity+"]: Cannot allocate buffer for m2a"<<endl;
+        return false;
+    }
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_payload, clear_payload_len});
+
+    unsigned int current_len = 0;
+
+    memcpy(clear_payload, &response_size, sizeof(unsigned short));
+    current_len += sizeof(unsigned short);
+    memcpy(clear_payload + current_len, response, response_size);
+    current_len += response_size;
+
+    memcpy(clear_payload + current_len, &file_size_len, sizeof(unsigned short));
+    current_len += sizeof(unsigned short);
+    memcpy(clear_payload + current_len,char_file_size,file_size_len);
+    current_len += file_size_len;
+
+    auto* chunk = read_chunk(filename, 0, first_send);
+    if(!chunk){
+        return false;
+    }
+
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, chunk, first_send});
+
+    memcpy(clear_payload + current_len, chunk,first_send);
+
+    unsigned int encrypted_payload_len;
+    unsigned char* encrypted_payload;
+
+    ret = symm_encrypt(clear_payload, clear_payload_len, this->session_key,
+                       IV_buffer, encrypted_payload, encrypted_payload_len);
+
+    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload, encrypted_payload_len});
+
+    if(ret==0) {
+        cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
+        return false;
+    }
+
+    message* m2 = build_message(IV_buffer, DOWNLOAD_RES, encrypted_payload_len, encrypted_payload, true, this->hmac_key, this->worker_counter);
+    if(send_msg(this->socket_id, m2, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
+        cerr<<"["+this->identity+"]: Cannot send DOWNLOAD response to server"<<endl;
+        return false;
+    }
+    delete m2;
+
+    if(this->worker_counter == UINT_MAX){
+        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
+        return false;
+    }
+    this->worker_counter++;
+
+    unsigned int sent_size = first_send;
+    while(sent_size < int_file_size){
+
+        message* m2i;
+        unsigned int encrypted_payload_len_i;
+        unsigned char* encrypted_payload_i;
+
+        auto* IV_buffer_i = (unsigned char*)malloc(IV_LENGTH);
+        if(!IV_buffer_i){
+            cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
+            return false;
+        }
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
+
+        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_file_size - sent_size ? int_file_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+        auto* clear_payload_i = read_chunk(filename, sent_size, to_send);
+        if(!clear_payload_i){
+            return false;
+        }
+        unsigned short clear_payload_len_i = sizeof(clear_payload_i);
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_payload_i, clear_payload_len_i});
+
+        ret = symm_encrypt(clear_payload_i, clear_payload_len_i, this->session_key,
+                           IV_buffer_i, encrypted_payload_i, encrypted_payload_len_i);
+
+        this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i, encrypted_payload_len_i});
+
+        if(ret==0) {
+            cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
+            return false;
+        }
+
+        m2i = build_message(IV_buffer_i, DOWNLOAD_DATA, encrypted_payload_len_i, encrypted_payload_i, true, this->hmac_key, this->worker_counter);
+        if(send_msg(this->socket_id, m2i, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
+            cerr<<"["+this->identity+"]: Cannot send DOWNLOAD_DATA response to client"<<endl;
+            return false;
+        }
+        delete m2i;
+
+        if(this->worker_counter == UINT_MAX){
+            cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
+            return false;
+        }
+        this->worker_counter++;
+
+        sent_size += clear_payload_len_i;
+    }
 
     return true;
 }
 
-void Worker::handle_upload() {
+bool Worker::handle_upload(message* m1) {
     //TODO
     //open file
     //receive file length
@@ -284,6 +464,73 @@ void Worker::handle_upload() {
     //    fwrite(chunk, chunk_index*chunk_size)
     //    unreceived.remove(index)
     //
+
+    int ret;
+
+    unsigned int payload_len;
+    unsigned char* payload;
+
+    ret = symm_decrypt(m1->payload, m1->header.payload_length,
+                       session_key, m1->header.initialization_vector,payload,payload_len);
+    if(ret==0) {
+        cerr << "["+this->identity+"]: Cannot decrypt message M1!" << endl;
+        return false;
+    }
+
+    allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
+
+    auto* file_name = new payload_field();
+    auto* file_size = new payload_field();
+    unsigned short num_fields = 2;
+    payload_field* fields[] = {file_name, file_size};
+    if(!get_payload_fields(m1->payload, fields, num_fields)){
+        cerr<<"Cannot unpack payload fields"<<endl;
+        return false;
+    }
+
+    allocatedBuffers.push_back({CLEAR_BUFFER, file_name->field, file_name->field_len});
+    allocatedBuffers.push_back({CLEAR_BUFFER, file_size->field, file_size->field_len});
+
+    string filename = string((const char*) file_name->field, file_name->field_len);
+
+    if(!check_filename_not_traversing(filename)){
+        cerr << "The name of the file is not acceptable!" << endl;
+        send_failure_message(INVALID_FILENAME, UPLOAD_RES, true);
+        return true;
+    }
+
+    if(this->file_list.find("\n" + filename + "\n") != string::npos){
+        cerr << "There is already a file with the same name in the storage, please choose a different name!";
+        send_failure_message(DUP_NAME, UPLOAD_RES, true);
+        return true;
+    }
+
+    unsigned int filesize;
+    memcpy(&filesize, file_size->field, file_size->field_len);
+
+
+
+
+
+
+
+
+    auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    unsigned char clear_response = REQ_OK;
+    memcpy(response, &clear_response, sizeof(unsigned short));
+    unsigned short response_size = sizeof(response);
+
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
+
+    auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
+    if(!IV_buffer){
+        cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
+        return false;
+    }
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
+
+
+
 
 }
 

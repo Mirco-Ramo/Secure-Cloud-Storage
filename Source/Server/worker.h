@@ -33,7 +33,7 @@ public:
     void* handle_commands();
     static void  *handle_commands_helper(void* context);
     bool handle_download(message* m1);
-    void handle_upload();
+    bool handle_upload(message* m1);
     bool handle_list();
     void handle_rename();
     void handle_delete();

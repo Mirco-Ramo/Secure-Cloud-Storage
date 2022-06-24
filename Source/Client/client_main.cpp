@@ -103,6 +103,11 @@ int main(int argc, char** argv) {
                 continue;
             }
 
+            if(!check_permissions(filename)){
+                cout << "You don't have the rights to handle this file! Choose a different one" << endl << PROMPT;
+                continue;
+            }
+
             if(!handle_upload(client_socket, identity, filename)){
                 cerr << "Error in contacting the server, disconnecting!" << endl;
                 clean_all();
