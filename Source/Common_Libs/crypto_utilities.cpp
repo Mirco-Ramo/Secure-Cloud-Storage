@@ -30,6 +30,7 @@ bool check_permissions(const string& filename){
     if(access(filename_chr, R_OK) || access(filename_chr, W_OK)){
         return false;
     }
+    return true;
 }
 
 bool check_file_name(const string& file_name){
@@ -59,6 +60,15 @@ bool check_file_name(const string& file_name){
     //whitelisting of the final part and checking that contains a point for the extension
     char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-.";
     if(filename_portion.find_first_not_of(ok_chars)!=string::npos && filename_portion.find('.') != string::npos){
+        cerr<<"Filename does not satisfy constraints"<<endl;
+        return false;
+    }
+    return true;
+}
+
+bool check_filename_not_traversing(const string& file_name){
+    char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-.";
+    if(file_name.find_first_not_of(ok_chars)!=string::npos && file_name.find('.') != string::npos){
         cerr<<"Filename does not satisfy constraints"<<endl;
         return false;
     }

@@ -12,6 +12,7 @@ using namespace std;
 bool check_username(const std::string& username);
 bool check_permissions(const string& filename);
 bool check_file_name(const std::string& file_name);
+bool check_filename_not_traversing(const string& file_name);
 bool command_ok(const std::string& command);
 
 
