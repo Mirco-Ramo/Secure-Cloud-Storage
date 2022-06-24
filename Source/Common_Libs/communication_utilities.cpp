@@ -234,11 +234,12 @@ bool get_payload_fields(const unsigned char* total_payload, payload_field* field
     return true;
 }
 
-unsigned int get_file_size(const string &filename, bool file_found) {
-    int ret = 0;
+unsigned long get_file_size(const string &filename, bool &file_found) {
+    long ret = 0;
 
     FILE *f = fopen(filename.c_str(), "rt");
     if(f == nullptr) {
+        file_found = false;
         return ret;
     }
 

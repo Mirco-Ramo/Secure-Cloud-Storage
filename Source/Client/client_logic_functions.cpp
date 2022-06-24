@@ -342,11 +342,16 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     int ret;
 
     bool file_found;
-    unsigned int file_size = get_file_size(file_name, file_found);
+    unsigned long file_size = get_file_size(file_name, file_found);
     if(!file_found){
         cerr << "File not found, please check the path and try again!";
         return true;
     }
+    if(file_size > UINT_MAX){
+        cerr << "The file is too big to be sent over the network, sorry!";
+        return true;
+    }
+    file_size = (unsigned int)file_size;
     unsigned short file_size_len = sizeof(file_size);
 
     message* m1;

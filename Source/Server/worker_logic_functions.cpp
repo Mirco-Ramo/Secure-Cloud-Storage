@@ -47,6 +47,7 @@ void* Worker::handle_commands() {
         auto* m1 = new message();
         if(recv_msg(this->socket_id, m1, true, this->identity)<=0){
             cerr<<"["+this->identity+"]: Cannot receive request from client"<<endl;
+            clean_all();
             break;
         }
 
@@ -97,6 +98,7 @@ void* Worker::handle_commands() {
                     handleErrors("["+this->identity+"]: Fatal error: error while completing DOWNLOAD function", 12);
                 }
                 clean_all();
+                break;
             case UPLOAD_REQ:
 
             case RENAME:
@@ -109,6 +111,8 @@ void* Worker::handle_commands() {
                 delete m1;
                 clean_all();
         }
+
+
     }
 
     clean_all();
@@ -175,7 +179,7 @@ bool Worker::handle_list() {
 
     m2 = build_message(IV_buffer, LIST_RES, encrypted_payload_len, encrypted_payload, true, this->hmac_key, this->worker_counter);
     if(send_msg(this->socket_id, m2, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
-        cerr<<"["+this->identity+"]: Cannot send LIST respose to server"<<endl;
+        cerr<<"["+this->identity+"]: Cannot send LIST response to server"<<endl;
         return false;
     }
     delete m2;
@@ -200,10 +204,9 @@ bool Worker::handle_list() {
         }
         this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
 
-        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > sizeof(this->file_list) ? sizeof(this->file_list) : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > sizeof(this->file_list) - sent_size ? sizeof(this->file_list) - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
         auto* clear_payload_i = (unsigned char*)malloc(to_send);
-        //TODO check that the substring here is right
-        memcpy(clear_payload_i, this->file_list.substr(sent_size, to_send - 1).c_str(), to_send);
+        memcpy(clear_payload_i, this->file_list.substr(sent_size, to_send).c_str(), to_send);
         if(!clear_payload_i){
             cerr<<"["+this->identity+"]: Cannot allocate buffer for m2i"<<endl;
             return false;

@@ -17,6 +17,10 @@ bool check_username(const string& username){
 }
 
 bool check_file_name(const string& file_name){
+    //TODO
+    //canonicalization-tokenization
+    //check size
+
     char ok_chars [] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-.";
 
     if(file_name.find_first_not_of(ok_chars)!=string::npos){

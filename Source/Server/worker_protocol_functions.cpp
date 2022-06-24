@@ -254,6 +254,12 @@ bool Worker::establish_session() {
         clean_all();
         return false;
     }
+    if(str_username.size() > MAX_USERNAME_LEN){
+        cerr<<"["+identity+"]: "<<"Username too long"<<endl;
+        send_failure_message(WRONG_FORMAT, AUTH_RESPONSE, false);
+        clean_all();
+        return false;
+    }
 
     this->username = str_username;
     this->identity = "Worker for: "+this->username;
