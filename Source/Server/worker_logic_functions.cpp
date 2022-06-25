@@ -264,7 +264,6 @@ void* Worker::handle_commands() {
             break;
     }
 
-    clean_all();
     delete this;
     return 0;
 }
@@ -274,23 +273,31 @@ bool Worker::handle_list() {
 
     message* m2;
 
-    auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    auto* response = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response = REQ_OK;
-    memcpy(response, &clear_response, sizeof(unsigned short));
+    memcpy(response, &clear_response, sizeof(unsigned char));
     unsigned short response_size = sizeof(response);
 
     string list = get_file_list_as_string();
+    cout<<list<<endl;
 
-    auto* list_size = (unsigned char*)malloc(sizeof(list));
-    auto int_list_size = (unsigned int) sizeof(list);
-    memcpy(list_size, &int_list_size, sizeof(list));
-    unsigned short list_size_size = sizeof(list_size);
+    auto* char_list = (unsigned char*)malloc(list.size()+1);
+    auto* char_list_size = (unsigned char*)malloc(sizeof(unsigned int));
+    if(!char_list || ! char_list_size){
+        cerr<<"["+this->identity+"]: Cannot allocate buffer for transmitting the list"<<endl;
+        return false;
+    }
+    unsigned int int_list_size = list.size()+1;
+    memcpy(char_list_size, &int_list_size, sizeof(unsigned int));
+    unsigned short list_size_size = sizeof(char_list_size);
 
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
 
     this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
-    this->allocatedBuffers.push_back({CLEAR_BUFFER, list_size, list_size_size});
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, char_list_size, list_size_size});
+
+
 
     auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
     if(!IV_buffer){
@@ -321,7 +328,7 @@ bool Worker::handle_list() {
 
     memcpy(clear_payload + current_len, &list_size_size, sizeof(unsigned short));
     current_len += sizeof(unsigned short);
-    memcpy(clear_payload + current_len,list_size,list_size_size);
+    memcpy(clear_payload + current_len,char_list_size,list_size_size);
     current_len += list_size_size;
 
     memcpy(clear_payload + current_len,list.c_str(),first_send);
