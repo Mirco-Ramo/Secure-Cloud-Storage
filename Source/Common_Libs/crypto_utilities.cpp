@@ -19,7 +19,7 @@ bool check_username(const string& username){
 char* canonicalize(const string& file_name){
     //canonicalization//
     //e.g.   ../file.txt  =>  /home/user/myfiles/file.txt
-    char* canon_file_name = realpath(file_name.c_str(), NULL);
+    char* canon_file_name = realpath(("./"+file_name).c_str(), NULL);
     if(!canon_file_name)
         return NULL;
     return canon_file_name;

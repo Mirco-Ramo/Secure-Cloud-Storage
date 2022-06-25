@@ -268,18 +268,26 @@ void* Worker::handle_commands() {
     return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
 bool Worker::handle_list() {
     int ret;
 
     message* m2;
 
-    auto* response = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response = REQ_OK;
-    memcpy(response, &clear_response, sizeof(unsigned char));
-    unsigned short response_size = sizeof(response);
+    unsigned char* response = &clear_response;
+    unsigned short response_size = sizeof(unsigned char);
 
     string list = get_file_list_as_string();
-    cout<<list<<endl;
 
     auto* char_list = (unsigned char*)malloc(list.size()+1);
     auto* char_list_size = (unsigned char*)malloc(sizeof(unsigned int));
@@ -289,29 +297,22 @@ bool Worker::handle_list() {
     }
     unsigned int int_list_size = list.size()+1;
     memcpy(char_list_size, &int_list_size, sizeof(unsigned int));
-    unsigned short list_size_size = sizeof(char_list_size);
+    unsigned short list_size_size = sizeof(unsigned int);
 
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
 
-    this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
     this->allocatedBuffers.push_back({CLEAR_BUFFER, char_list_size, list_size_size});
-
-
 
     auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
     if(!IV_buffer){
         cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
         return false;
     }
-    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
-
-    cout<<"Preparation of first_send"<<endl;
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer});
 
     unsigned int first_send = MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short) > int_list_size ?
                               int_list_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short);
-
-    cout<<"First send is: "<<first_send<<endl;
 
     unsigned int clear_payload_len = response_size + list_size_size + first_send + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
@@ -328,25 +329,17 @@ bool Worker::handle_list() {
     memcpy(clear_payload + current_len, response, response_size);
     current_len += response_size;
 
-    cout<<"response size is: "<<response_size<<endl;
-    cout<<"response is: "<<*(response)<<endl;
-
     memcpy(clear_payload + current_len, &list_size_size, sizeof(unsigned short));
     current_len += sizeof(unsigned short);
     memcpy(clear_payload + current_len,char_list_size,list_size_size);
     current_len += list_size_size;
 
-    cout<<"list size size is: "<<list_size_size<<endl;
-    cout<<"list size is: "<<int_list_size<<endl;
-
     memcpy(clear_payload + current_len,list.c_str(),first_send);
-
-    cout<<"First message ready"<<endl;
 
     ret = symm_encrypt(clear_payload, clear_payload_len, this->session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
 
-    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload, encrypted_payload_len});
+    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload});
 
     if(ret==0) {
         cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
@@ -358,7 +351,6 @@ bool Worker::handle_list() {
         cerr<<"["+this->identity+"]: Cannot send LIST response from server"<<endl;
         return false;
     }
-    cout<<"First message sent"<<endl;
     this->allocatedBuffers.push_back({MESSAGE, m2});
 
     if(this->worker_counter == UINT_MAX){
@@ -379,22 +371,22 @@ bool Worker::handle_list() {
             cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
             return false;
         }
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i});
 
-        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_list_size - sent_size ? int_list_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+        unsigned int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_list_size - sent_size ? int_list_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
         auto* clear_payload_i = (unsigned char*)malloc(to_send);
         memcpy(clear_payload_i, list.substr(sent_size, to_send).c_str(), to_send);
         if(!clear_payload_i){
             cerr<<"["+this->identity+"]: Cannot allocate buffer for m2i"<<endl;
             return false;
         }
-        unsigned short clear_payload_len_i = sizeof(clear_payload_i);
+        unsigned int clear_payload_len_i = to_send;
         this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_payload_i, clear_payload_len_i});
 
         ret = symm_encrypt(clear_payload_i, clear_payload_len_i, this->session_key,
                            IV_buffer_i, encrypted_payload_i, encrypted_payload_len_i);
 
-        this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i, encrypted_payload_len_i});
+        this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i});
 
         if(ret==0) {
             cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
@@ -416,7 +408,6 @@ bool Worker::handle_list() {
 
         sent_size += clear_payload_len_i;
     }
-
     return true;
 }
 
@@ -438,17 +429,23 @@ bool Worker::handle_download(message* m1) {
     string filename = string((const char*) payload, payload_len);
 
     if(!check_filename_not_traversing(filename)){
-        cerr << "The name of the file is not acceptable!" << endl;
+        cerr << "["+this->identity+"]: The name of the file is not acceptable!" << endl;
         send_failure_message(INVALID_FILENAME, DOWNLOAD_RES, true);
         return true;
     }
+
+    filename = "../UserData/" + this->username + "/" + filename;
+    cout<<GetStdoutFromCommand("pwd")<<"\t"<<filename;
 
     bool file_found;
 
     unsigned long file_size = get_file_size(filename, file_found);
     if(!file_found){
-        cerr << "File not found!";
-        send_failure_message(MISSING_FILE, DOWNLOAD_RES, true);
+        cerr << "["+this->identity+"]: File not found!"<<endl;
+        if (!send_failure_message(MISSING_FILE, DOWNLOAD_RES, true)){
+            cerr << "["+this->identity+"]: Cannot send the failure message"<<endl;
+            return false;
+        }
         return true;
     }
 
@@ -545,7 +542,7 @@ bool Worker::handle_download(message* m1) {
         }
         this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
 
-        int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_file_size - sent_size ? int_file_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+        unsigned int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_file_size - sent_size ? int_file_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
         auto* clear_payload_i = read_chunk(filename, sent_size, to_send);
         if(!clear_payload_i){
             return false;

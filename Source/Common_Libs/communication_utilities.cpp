@@ -251,8 +251,12 @@ unsigned long get_file_size(const string &filename, bool &file_found) {
     return ret;
 }
 
-unsigned char *read_chunk(const string &filename, unsigned int sent_size, int max_read) {
+unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsigned int max_read) {
     auto *chunk = (unsigned char*)malloc(max_read);
+    if(!chunk){
+        cerr<<"Cannot alloc memory for chunk"<<endl;
+        return NULL;
+    }
     char *app = (char*)malloc(max_read);
 
     ifstream file;

@@ -54,23 +54,23 @@ bool handle_list(int socket_id, const string& identity){
         return false;
     }
 
-    unsigned int payload_len;
-    unsigned char* payload;
+    unsigned int decrypted_payload_len;
+    unsigned char* decrypted_payload;
 
     ret = symm_decrypt(m2->payload, m2->header.payload_length,
-                       session_key, m2->header.initialization_vector,payload,payload_len);
+                       session_key, m2->header.initialization_vector,decrypted_payload,decrypted_payload_len);
     if(ret==0) {
         cerr << "Cannot decrypt message M2!" << endl;
         return false;
     }
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
+    allocatedBuffers.push_back({CLEAR_BUFFER, decrypted_payload, decrypted_payload_len});
 
     auto* response = new payload_field();
     auto* list_size = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {response, list_size};
-    if(!get_payload_fields(payload, fields, num_fields)){
+    if(!get_payload_fields(decrypted_payload, fields, num_fields)){
         cerr<<"Cannot unpack payload fields"<<endl;
         return false;
     }
@@ -91,57 +91,55 @@ bool handle_list(int socket_id, const string& identity){
         cerr << "Error in size of the list" << endl;
         return false;
     }
-    else{
-        unsigned int list_len = MAX_PAYLOAD_LENGTH - response->field_len - list_size->field_len;
-        auto* list = (unsigned char*)malloc(list_len);
-        memcpy(list, &payload[response->field_len + list_size->field_len + 3], list_len);
+    unsigned int list_len = decrypted_payload_len - response->field_len - list_size->field_len -2*sizeof(unsigned short);
+    auto* list = (unsigned char*)malloc(list_len);
+    memcpy(list, decrypted_payload + response->field_len + list_size->field_len + 2*sizeof(unsigned short), list_len);
 
-        allocatedBuffers.push_back({CLEAR_BUFFER, list, list_len});
+    allocatedBuffers.push_back({CLEAR_BUFFER, list, list_len});
 
-        print_list(list, list_len);
+    print_list(list, list_len);
 
-        unsigned int recvd_list = list_len;
+    unsigned int recvd_list = list_len;
 
-        while(recvd_list < *(list_size->field)) {
-            auto *m2i = new message();
-            if (recv_msg(socket_id, m2i, true, identity) <= 0) {
-                cerr << "Cannot receive M2 from server" << endl;
-                return false;
-            }
-            allocatedBuffers.push_back({MESSAGE, m2i});
-
-            ret = verify_hmac(m2i, server_counter, hmac_key);
-            if(ret != 1){
-                cerr << "HMAC is not matching, closing connection" << endl;
-                return false;
-            }
-
-            if(server_counter == UINT_MAX){
-                cerr << "Maximum number of messages reached for a session, closing connection" << endl;
-                return false;
-            }
-            server_counter++;
-
-            if (m2->header.opcode != LIST_DATA) {
-                cerr << "Received an M2 response with unexpected opcode: " << m2->header.opcode << endl;
-                return false;
-            }
-
-            unsigned int payload_len_i;
-            unsigned char *payload_i;
-
-            ret = symm_decrypt(m2i->payload, m2i->header.payload_length,
-                               session_key, m2i->header.initialization_vector, payload_i, payload_len_i);
-            if (ret == 0) {
-                cerr << "Cannot decrypt message M2!" << endl;
-                return false;
-            }
-
-            allocatedBuffers.push_back({CLEAR_BUFFER, payload_i, payload_len_i});
-
-            print_list(payload_i, payload_len_i);
-            recvd_list += payload_len_i;
+    while(recvd_list < *(list_size->field)) {
+        auto *m2i = new message();
+        if (recv_msg(socket_id, m2i, true, identity) <= 0) {
+            cerr << "Cannot receive M2 from server" << endl;
+            return false;
         }
+        allocatedBuffers.push_back({MESSAGE, m2i});
+
+        ret = verify_hmac(m2i, server_counter, hmac_key);
+        if(ret != 1){
+            cerr << "HMAC is not matching, closing connection" << endl;
+            return false;
+        }
+
+        if(server_counter == UINT_MAX){
+            cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+            return false;
+        }
+        server_counter++;
+
+        if (m2->header.opcode != LIST_DATA) {
+            cerr << "Received an M2 response with unexpected opcode: " << m2->header.opcode << endl;
+            return false;
+        }
+
+        unsigned int payload_len_i;
+        unsigned char *payload_i;
+
+        ret = symm_decrypt(m2i->payload, m2i->header.payload_length,
+                           session_key, m2i->header.initialization_vector, payload_i, payload_len_i);
+        if (ret == 0) {
+            cerr << "Cannot decrypt message M2!" << endl;
+            return false;
+        }
+
+        allocatedBuffers.push_back({CLEAR_BUFFER, payload_i, payload_len_i});
+
+        print_list(payload_i, payload_len_i);
+        recvd_list += payload_len_i;
     }
     clean_all();
     cout << PROMPT;
@@ -167,7 +165,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
 
     allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
 
-    ret = symm_encrypt(filename, sizeof(filename), session_key,
+    ret = symm_encrypt(filename, file_name.size() + 1, session_key,
                        IV_buffer, encrypted_filename, encrypted_filename_len);
 
     allocatedBuffers.push_back({ENC_BUFFER, encrypted_filename, encrypted_filename_len});
@@ -230,7 +228,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
     auto* file_size = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {response, file_size};
-    if(!get_payload_fields(m2->payload, fields, num_fields)){
+    if(!get_payload_fields(payload, fields, num_fields)){
         cerr<<"Cannot unpack payload fields"<<endl;
         return false;
     }

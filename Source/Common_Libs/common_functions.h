@@ -22,7 +22,7 @@ int send_msg(int socket_id, message* msg, bool hmac, std::string identity);
 int recv_msg(int socket_id, message *msg, bool hmac, std::string identity);
 bool get_payload_fields(const unsigned char* total_payload, payload_field* fields[], unsigned short num_fields);
 unsigned long get_file_size(const string &filename, bool &file_found);
-unsigned char *read_chunk(const string &filename, unsigned int sent_size, int max_read);
+unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsigned int max_read);
 bool delete_file(const string &filename);
 bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename);
 

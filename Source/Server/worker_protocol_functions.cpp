@@ -9,7 +9,7 @@ bool Worker::send_failure_message(unsigned char reason, unsigned char opcode, bo
 
     unsigned char* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
     if(!IV_buffer){
-        cerr<<"Cannot allocate buffer for IV"<<endl;
+        cerr<<"["+identity+"]: "<<"Cannot allocate buffer for IV"<<endl;
         return false;
     }
 
@@ -19,27 +19,38 @@ bool Worker::send_failure_message(unsigned char reason, unsigned char opcode, bo
     unsigned int encrypted_reason_len;
 
     if(multiple){
-        auto* error = (unsigned char*)malloc(sizeof(reason) + 4*sizeof(unsigned short));
-        int current_len = 0;
+        unsigned short reason_len = sizeof(reason);
         auto* app = (unsigned char*)malloc(sizeof(unsigned char));
-        memset(app, 0, sizeof(&app));
+        if(!app){
+            cerr<<"["+identity+"]: Cannot alloc memory for buffer"<<endl;
+            return false;
+        }
+        memset(app, 0, sizeof(unsigned char));
+        unsigned short app_len = sizeof(unsigned char);
+        unsigned short error_len = sizeof(reason_len) + reason_len + sizeof(app_len) + app_len;
+        auto* error = (unsigned char*)malloc(error_len);
+        if(!error){
+            cerr<<"["+identity+"]: Cannot alloc memory for buffer"<<endl;
+            return false;
+        }
+        int current_len = 0;
 
-        memcpy(error, (unsigned char*)sizeof(reason), sizeof(unsigned short));
+
+        memcpy(error, &reason_len, sizeof(unsigned short));
         current_len += sizeof(unsigned short);
-        memcpy(error + current_len, &reason, sizeof(reason));
-        current_len += sizeof(reason);
+        memcpy(error + current_len, &reason, reason_len);
+        current_len += reason_len;
 
-        memcpy(error + current_len, (unsigned char*)sizeof(&app), sizeof(unsigned short));
+        memcpy(error + current_len, &app_len, sizeof(unsigned short));
         current_len += sizeof(unsigned short);
-        memcpy(error + current_len,app,sizeof(&app));
-        current_len += sizeof(&app);
+        memcpy(error + current_len,app,app_len);
 
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, error, sizeof(error)});
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, app, sizeof(app)});
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, error, error_len});
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, app, app_len});
 
-        if(symm_encrypt(error,sizeof(error),session_key,
+        if(symm_encrypt(error,error_len,session_key,
                         IV_buffer,encrypted_reason,encrypted_reason_len)!=1){
-            cerr<<"Cannot encrypt signed parameters and username"<<endl;
+            cerr<<"["+identity+"]: "<<"Cannot encrypt signed parameters and username"<<endl;
             free(IV_buffer);
             return false;
         }
@@ -47,19 +58,25 @@ bool Worker::send_failure_message(unsigned char reason, unsigned char opcode, bo
     else{
         if(symm_encrypt(&reason,sizeof(reason),session_key,
                         IV_buffer,encrypted_reason,encrypted_reason_len)!=1){
-            cerr<<"Cannot encrypt signed parameters and username"<<endl;
+            cerr<<"["+identity+"]: ""Cannot encrypt signed parameters and username"<<endl;
             free(IV_buffer);
             return false;
         }
-
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, encrypted_reason, encrypted_reason_len});
     }
+    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_reason, encrypted_reason_len});
 
     failure_message = build_message(IV_buffer, opcode, encrypted_reason_len, encrypted_reason, true, hmac_key, this->worker_counter);
-    send_msg(socket_id, failure_message, true, identity);
+    if(send_msg(socket_id, failure_message, true, identity)< FIXED_HEADER_LENGTH + (int)encrypted_reason_len + DIGEST_LEN){
+        cerr<<"["+this->identity+"]: Cannot send failure message"<<endl;
+        return false;
+    }
+    if(this->worker_counter == UINT_MAX){
+        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
+        return false;
+    }
+    this->worker_counter++;
 
     delete failure_message;
-
     return true;
 }
 

@@ -76,10 +76,10 @@ int main(int argc, char** argv) {
         else if(command == "DOWNLOAD"){
             string filename;
             cout << "Please insert the name of the file you want to download" << endl << PROMPT;
-            cin >> filename;
-            cout << endl << PROMPT;
+            getline(cin, filename);
 
-            if(!check_file_name(filename)){
+            cout<<"I go in check file name"<<endl;
+            if(!check_filename_not_traversing(filename)){
                 cout << "The name of the file is not correct, please insert a correct name "
                         "(use the LIST command to check which file are present in your dedicated storage)" << endl << PROMPT;
                 continue;
@@ -91,12 +91,12 @@ int main(int argc, char** argv) {
                 break;
             }
             clean_all();
+            cout << endl << PROMPT;
         }
         else if(command == "UPLOAD"){
             string filename;
             cout << "Please insert the name of the file you want to upload" << endl << PROMPT;
-            cin >> filename;
-            cout << endl << PROMPT;
+            getline(cin, filename);
 
             if(!check_file_name(filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
@@ -114,11 +114,12 @@ int main(int argc, char** argv) {
                 break;
             }
             clean_all();
+            cout << endl << PROMPT;
         }
         else if(command == "RENAME"){
             string old_filename;
             cout << "Please insert the name of the file you want to rename" << endl << PROMPT;
-            cin >> old_filename;
+            getline(cin, old_filename);
             cout << endl << PROMPT;
 
             if(!check_file_name(old_filename)){
@@ -128,8 +129,7 @@ int main(int argc, char** argv) {
 
             string new_filename;
             cout << "Please insert the new name you want to give to the file (must not be already present as a name of a file in the storage)" << endl << PROMPT;
-            cin >> new_filename;
-            cout << endl << PROMPT;
+            getline(cin, new_filename);
 
             if(!check_file_name(new_filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
@@ -142,12 +142,12 @@ int main(int argc, char** argv) {
                 break;
             }
             clean_all();
+            cout << endl << PROMPT;
         }
         else if(command == "DELETE"){
             string filename;
             cout << "Please insert the name of the file you want to delete" << endl << PROMPT;
-            cin >> filename;
-            cout << endl << PROMPT;
+            getline(cin,filename);
 
             if(!check_file_name(filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
@@ -160,6 +160,7 @@ int main(int argc, char** argv) {
                 break;
             }
             clean_all();
+            cout << endl << PROMPT;
         }
         else if(command == "LOGOUT"){
             if(!handle_logout(client_socket, identity)){
