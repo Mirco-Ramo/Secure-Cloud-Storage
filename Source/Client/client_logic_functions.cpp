@@ -70,7 +70,7 @@ bool handle_list(int socket_id, const string& identity){
     auto* list_size = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {response, list_size};
-    if(!get_payload_fields(m2->payload, fields, num_fields)){
+    if(!get_payload_fields(payload, fields, num_fields)){
         cerr<<"Cannot unpack payload fields"<<endl;
         return false;
     }
@@ -855,7 +855,7 @@ bool handle_logout(int socket_id, const string& identity){
         return false;
     }
     if(WRONG_FORMAT == *(payload)){
-        cerr << "Wrong format for M1 message" << endl;
+        cerr << "Wrong format for M2 message" << endl;
         return false;
     }
 

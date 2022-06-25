@@ -311,7 +311,9 @@ bool Worker::handle_list() {
     unsigned int first_send = MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short) > int_list_size ?
                               int_list_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short);
 
-    unsigned short clear_payload_len = response_size + list_size_size + first_send + 2*sizeof(unsigned short);
+    cout<<"First send is: "<<first_send<<endl;
+
+    unsigned int clear_payload_len = response_size + list_size_size + first_send + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
     if(!clear_payload){
         cerr<<"["+this->identity+"]: Cannot allocate buffer for m2"<<endl;
@@ -326,10 +328,16 @@ bool Worker::handle_list() {
     memcpy(clear_payload + current_len, response, response_size);
     current_len += response_size;
 
+    cout<<"response size is: "<<response_size<<endl;
+    cout<<"response is: "<<*(response)<<endl;
+
     memcpy(clear_payload + current_len, &list_size_size, sizeof(unsigned short));
     current_len += sizeof(unsigned short);
     memcpy(clear_payload + current_len,char_list_size,list_size_size);
     current_len += list_size_size;
+
+    cout<<"list size size is: "<<list_size_size<<endl;
+    cout<<"list size is: "<<int_list_size<<endl;
 
     memcpy(clear_payload + current_len,list.c_str(),first_send);
 
