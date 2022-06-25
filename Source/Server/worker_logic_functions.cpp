@@ -15,7 +15,7 @@ string Worker::GetStdoutFromCommand(string cmd) {
     cout<<"Start command"<<endl;
     string data;
     FILE * stream;
-    const unsigned int max_buffer = MAX_PAYLOAD_LENGTH;
+    const unsigned int max_buffer = 356;
     char buffer[max_buffer];
     cmd.append(" 2>&1");
 
@@ -31,7 +31,7 @@ string Worker::GetStdoutFromCommand(string cmd) {
 }
 
 string Worker::get_file_list_as_string(){
-    return GetStdoutFromCommand("ls ../UserData/" + this->username);
+    return GetStdoutFromCommand(string("ls ../UserData/" + this->username));
 }
 
 vector<string> Worker::get_file_list_as_vector(){
@@ -283,9 +283,9 @@ bool Worker::handle_list() {
     memcpy(response, &clear_response, sizeof(unsigned short));
     unsigned short response_size = sizeof(response);
 
-    cout<<"Linux command ready"<<endl;
-    vector<string> vec_list = get_file_list_as_vector();
     cout<<"Linux command invoked"<<endl;
+    vector<string> vec_list = get_file_list_as_vector();
+    cout<<"Linux command terminated"<<endl;
     string list;
     for(auto & i : vec_list){
         list+= i;
