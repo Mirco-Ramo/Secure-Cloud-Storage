@@ -78,7 +78,7 @@ bool handle_list(int socket_id, const string& identity){
     allocatedBuffers.push_back({CLEAR_BUFFER, response->field, response->field_len});
     allocatedBuffers.push_back({CLEAR_BUFFER, list_size->field, list_size->field_len});
 
-    if(*(response->field) != WRONG_FORMAT || *(response->field) != REQ_OK){
+    if(*(response->field) != WRONG_FORMAT && *(response->field) != REQ_OK){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
     }
@@ -238,7 +238,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
     allocatedBuffers.push_back({CLEAR_BUFFER, response->field, response->field_len});
     allocatedBuffers.push_back({CLEAR_BUFFER, file_size->field, file_size->field_len});
 
-    if(*(response->field) != WRONG_FORMAT || *(response->field) != REQ_OK || *(response->field) != INVALID_FILENAME || *(response->field) != MISSING_FILE){
+    if(*(response->field) != WRONG_FORMAT && *(response->field) != REQ_OK && *(response->field) != INVALID_FILENAME && *(response->field) != MISSING_FILE){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
     }
@@ -458,7 +458,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
-    if(*(payload) != WRONG_FORMAT || *(payload) != REQ_OK || *(payload) != INVALID_FILENAME || *(payload) != DUP_NAME){
+    if(*(payload) != WRONG_FORMAT && *(payload) != REQ_OK && *(payload) != INVALID_FILENAME && *(payload) != DUP_NAME){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
     }
@@ -561,7 +561,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
     allocatedBuffers.push_back({CLEAR_BUFFER, payload_m4, payload_len_m4});
 
-    if(*(payload_m4) != WRONG_FORMAT || *(payload_m4) != REQ_OK){
+    if(*(payload_m4) != WRONG_FORMAT && *(payload_m4) != REQ_OK){
         cerr << "Unmatching response for M4 message" << endl;
         return false;
     }
@@ -675,7 +675,7 @@ bool handle_rename(int socket_id, const string& identity,  const string& old_fil
 
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
-    if(*(payload) != WRONG_FORMAT || *(payload) != REQ_OK || *(payload) != INVALID_FILENAME || *(payload) != MISSING_FILE || *(payload) != DUP_NAME){
+    if(*(payload) != WRONG_FORMAT && *(payload) != REQ_OK && *(payload) != INVALID_FILENAME && *(payload) != MISSING_FILE && *(payload) != DUP_NAME){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
     }
@@ -777,7 +777,7 @@ bool handle_delete(int socket_id, const string& identity,  const string& file_na
 
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
-    if(*(payload) != WRONG_FORMAT || *(payload) != REQ_OK || *(payload) != INVALID_FILENAME || *(payload) != MISSING_FILE){
+    if(*(payload) != WRONG_FORMAT && *(payload) != REQ_OK && *(payload) != INVALID_FILENAME && *(payload) != MISSING_FILE){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
     }

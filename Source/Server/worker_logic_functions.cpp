@@ -12,7 +12,6 @@ extern vector<ActiveWorker> active_workers;
 /*          UTILITY FOR LOGIC FUNCTIONS         */
 string Worker::GetStdoutFromCommand(string cmd) {
 
-    cout<<"Start command"<<endl;
     string data;
     FILE * stream;
     const unsigned int max_buffer = 356;
@@ -26,7 +25,6 @@ string Worker::GetStdoutFromCommand(string cmd) {
                 data.append(buffer);
         pclose(stream);
     }
-    cout<<"End command"<<endl;
     return data;
 }
 
@@ -276,23 +274,12 @@ bool Worker::handle_list() {
 
     message* m2;
 
-    cout<<"Handle list started"<<endl;
-
     auto* response = (unsigned char*)malloc(sizeof(unsigned short));
     unsigned char clear_response = REQ_OK;
     memcpy(response, &clear_response, sizeof(unsigned short));
     unsigned short response_size = sizeof(response);
 
-    cout<<"Linux command invoked"<<endl;
-    vector<string> vec_list = get_file_list_as_vector();
-    cout<<"Linux command terminated"<<endl;
-    string list;
-    for(auto & i : vec_list){
-        list+= i;
-    }
-
-    cout<<"List of files collected"<<endl;
-    cout<<list<<endl;
+    string list = get_file_list_as_string();
 
     auto* list_size = (unsigned char*)malloc(sizeof(list));
     auto int_list_size = (unsigned int) sizeof(list);
@@ -360,7 +347,7 @@ bool Worker::handle_list() {
     this->allocatedBuffers.push_back({MESSAGE, m2});
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
