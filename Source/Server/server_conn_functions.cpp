@@ -98,7 +98,7 @@ void shutdown_server(int received_signal){
     }
 
     for (auto & active_worker : active_workers){
-        if(active_worker.pointer)
+        if(active_worker.pointer!=NULL)
             delete active_worker.pointer;
     }
     //TODO clean_all

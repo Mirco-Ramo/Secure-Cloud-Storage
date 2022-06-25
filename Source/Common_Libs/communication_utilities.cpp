@@ -40,15 +40,18 @@ message* build_message(unsigned char* iv, unsigned char opcode,
         unsigned int input_lengths[] = {IV_LENGTH, OPCODE_LENGTH, PAYLOAD_LENGTH_LEN, m->header.payload_length, sizeof(unsigned int)};
         unsigned char* inputs[] = {m->header.initialization_vector, &m->header.opcode, payload_len_bytes, m->payload, counter_bytes};
         unsigned int inputs_number=5; //iv, opcode, payload_length, payload, counter
+
         if (prepare_buffer_for_hmac(buffer_mac, buffer_mac_len, inputs, input_lengths, inputs_number)!=FIXED_HEADER_LENGTH+payload_length+sizeof(unsigned int)){
             cerr<<"Impossible to create buffer for hmac: Message build aborted";
             return NULL;
         }
+
         unsigned char* hmac_result;
         if(!compute_hmac(buffer_mac, buffer_mac_len, hmac_result, hmac_key)){
             cerr<<"Impossible to compute hmac: Message build aborted";
             return NULL;
         }
+
         memcpy(m->hmac, hmac_result, DIGEST_LEN);
         free(buffer_mac);
         free(hmac_result);
@@ -82,7 +85,7 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
     }
 
     //Message serialization here
-    unsigned int total_serialized=0;
+    int total_serialized=0;
     //iv serialization (16 Bytes)
     memcpy(buffer_message,msg->header.initialization_vector,IV_LENGTH);
     total_serialized +=IV_LENGTH;
@@ -111,14 +114,14 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
         memcpy(buffer_message+total_serialized, msg->hmac, DIGEST_LEN);
         total_serialized +=DIGEST_LEN;
     }
+
     ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
-    if(ret < (int)total_serialized){
-        cout << "["+identity+"]:"<< "Failed to send message " << msg->header.opcode<<endl;
+    if(ret<total_serialized){
+        cout << "["+identity+"]:"<< "Failed to send message " << (unsigned int)msg->header.opcode<<endl;
         free(buffer_message);
         return -1;
     }
     free(buffer_message);
-
     return ret;
 }
 
@@ -160,6 +163,8 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
         p = *(buffer_message+read_so_far+i);
         payload_length = (payload_length<<8) | p;
     }
+
+
 
     //check payload length
     if(payload_length>MAX_PAYLOAD_LENGTH){
@@ -267,8 +272,10 @@ unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsign
     }
     file.ignore(sent_size);
     if(!file.read(app, max_read)){
-        cerr << "Reading from file failed!" << endl;
-        return nullptr;
+        if(!file.eof()){
+            cerr << "Reading from file failed!" << endl;
+            return nullptr;
+        }
     }
 
     memcpy(chunk, app, max_read);

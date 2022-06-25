@@ -13,7 +13,7 @@
 #define CIPHER              EVP_aes_128_cbc()
 #define IV_LENGTH           16 //(unsigned int)EVP_CIPHER_iv_length(CIPHER)
 #define OPCODE_LENGTH       1
-#define MAX_PAYLOAD_LENGTH  256*256*256-1 //3 Byte
+#define MAX_PAYLOAD_LENGTH  32000 //500 Kb
 #define KEY_LEN             16 //EVP_CIPHER_key_length(CIPHER)
 #define BLOCK_LEN           16 //(unsigned int)EVP_CIPHER_block_size(CIPHER context)
 #define MAC_TYPE            EVP_sha256()

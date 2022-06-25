@@ -153,7 +153,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
     auto* filename = (unsigned char*)malloc(file_name.size() + 1);
     memcpy(filename, file_name.c_str(), file_name.size() + 1);
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, filename, sizeof(filename)});
+    allocatedBuffers.push_back({CLEAR_BUFFER, filename, (unsigned int)file_name.size()+1});
 
     unsigned int encrypted_filename_len;
     unsigned char* encrypted_filename;
@@ -163,12 +163,12 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         return false;
     }
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
+    allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer});
 
     ret = symm_encrypt(filename, file_name.size() + 1, session_key,
                        IV_buffer, encrypted_filename, encrypted_filename_len);
 
-    allocatedBuffers.push_back({ENC_BUFFER, encrypted_filename, encrypted_filename_len});
+    allocatedBuffers.push_back({ENC_BUFFER, encrypted_filename});
 
     if(ret==0) {
         cerr << "Cannot encrypt message M1!" << endl;
@@ -180,7 +180,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         cerr<<"Cannot send DOWNLOAD request to server"<<endl;
         return false;
     }
-    delete m1;
+    allocatedBuffers.push_back({MESSAGE, m1});
 
     if(client_counter == UINT_MAX){
         cerr << "Maximum number of messages reached for a session, closing connection" << endl;
@@ -200,6 +200,8 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         cerr << "HMAC is not matching, closing connection" << endl;
         return false;
     }
+
+    cout<<"Hmac verified"<<endl;
 
     if(server_counter == UINT_MAX){
         cerr << "Maximum number of messages reached for a session, closing connection" << endl;
@@ -222,6 +224,8 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         return false;
     }
 
+    cout<<"Decryption done"<<endl;
+
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
     auto* response = new payload_field();
@@ -232,6 +236,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         cerr<<"Cannot unpack payload fields"<<endl;
         return false;
     }
+    cout<<"unpack done"<<endl;
 
     allocatedBuffers.push_back({CLEAR_BUFFER, response->field, response->field_len});
     allocatedBuffers.push_back({CLEAR_BUFFER, file_size->field, file_size->field_len});
@@ -257,14 +262,45 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         cerr << "Error in size of the file" << endl;
         return false;
     }
-    else{
-        unsigned int file_len = MAX_PAYLOAD_LENGTH - response->field_len - file_size->field_len;
-        auto* file_chunk = (unsigned char*)malloc(file_len);
-        memcpy(file_chunk, &payload[response->field_len + file_size->field_len + 3], file_len);
 
-        allocatedBuffers.push_back({CLEAR_BUFFER, file_chunk, file_len});
+    unsigned int file_data_len = payload_len - response->field_len - file_size->field_len - 2*sizeof(unsigned short);
+    cout<<"File len I want to receive is: "<<file_data_len<<endl;
+    auto* file_chunk = (unsigned char*)malloc(file_data_len);
+    memcpy(file_chunk, payload + response->field_len + file_size->field_len + 2*sizeof(unsigned short), file_data_len);
 
-        if(!write_file(file_chunk, file_len, file_name)){
+    cout<<"memcpy done"<<endl;
+
+    allocatedBuffers.push_back({CLEAR_BUFFER, file_chunk, file_data_len});
+
+    if(!write_file(file_chunk, file_data_len, file_name)){
+        if(!delete_file(file_name)){
+            cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                    "We suggest to delete the file manually for safety purposes." << endl;
+        }
+        return false;
+    }
+
+    unsigned int recvd_file = file_data_len;
+    unsigned int total_file_size;
+    memcpy(&total_file_size, file_size->field, sizeof(unsigned int));
+
+    cout<<"Downloading..."<<endl;
+
+    while(recvd_file < total_file_size) {
+        cout<<".";
+        auto *m2i = new message();
+        if (recv_msg(socket_id, m2i, true, identity) <= 0) {
+            cerr << "Cannot receive M2 from server" << endl;
+            if (!delete_file(file_name)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
+
+        ret = verify_hmac(m2i, server_counter, hmac_key);
+        if(ret != 1){
+            cerr << "HMAC is not matching, closing connection" << endl;
             if(!delete_file(file_name)){
                 cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
@@ -272,75 +308,53 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
             return false;
         }
 
-        unsigned int recvd_file = file_len;
-
-        while(recvd_file < *(file_size->field)) {
-            auto *m2i = new message();
-            if (recv_msg(socket_id, m2i, true, identity) <= 0) {
-                cerr << "Cannot receive M2 from server" << endl;
-                if(!delete_file(file_name)){
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
-                            "We suggest to delete the file manually for safety purposes." << endl;
-                }
-                return false;
+        if(server_counter == UINT_MAX){
+            cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+            if(!delete_file(file_name)){
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
             }
-            allocatedBuffers.push_back({MESSAGE, m2i});
-
-            ret = verify_hmac(m2i, server_counter, hmac_key);
-            if(ret != 1){
-                cerr << "HMAC is not matching, closing connection" << endl;
-                if(!delete_file(file_name)){
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
-                            "We suggest to delete the file manually for safety purposes." << endl;
-                }
-                return false;
-            }
-
-            if(server_counter == UINT_MAX){
-                cerr << "Maximum number of messages reached for a session, closing connection" << endl;
-                if(!delete_file(file_name)){
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
-                            "We suggest to delete the file manually for safety purposes." << endl;
-                }
-                return false;
-            }
-            server_counter++;
-
-            if (m2->header.opcode != DOWNLOAD_DATA) {
-                cerr << "Received an M2 response with unexpected opcode: " << m2->header.opcode << endl;
-                if(!delete_file(file_name)){
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
-                            "We suggest to delete the file manually for safety purposes." << endl;
-                }
-                return false;
-            }
-
-            unsigned int payload_len_i;
-            unsigned char *payload_i;
-
-            ret = symm_decrypt(m2i->payload, m2i->header.payload_length,
-                               session_key, m2i->header.initialization_vector, payload_i, payload_len_i);
-            if (ret == 0) {
-                cerr << "Cannot decrypt message M2!" << endl;
-                if(!delete_file(file_name)){
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
-                            "We suggest to delete the file manually for safety purposes." << endl;
-                }
-                return false;
-            }
-
-            allocatedBuffers.push_back({CLEAR_BUFFER, payload_i, payload_len_i});
-
-            if(!write_file(payload_i, payload_len_i, file_name)) {
-                if (!delete_file(file_name)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
-                            "We suggest to delete the file manually for safety purposes." << endl;
-                }
-                return false;
-            }
-            recvd_file += payload_len_i;
+            return false;
         }
+        server_counter++;
+
+        if (m2i->header.opcode != DOWNLOAD_DATA) {
+            cerr << "Received an M2 response with unexpected opcode: " << (int)m2i->header.opcode << endl;
+            if(!delete_file(file_name)){
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
+
+        unsigned int payload_len_i;
+        unsigned char *payload_i;
+
+        ret = symm_decrypt(m2i->payload, m2i->header.payload_length,
+                           session_key, m2i->header.initialization_vector, payload_i, payload_len_i);
+        if (ret == 0) {
+            cerr << "Cannot decrypt message M2!" << endl;
+            if(!delete_file(file_name)){
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
+
+        allocatedBuffers.push_back({CLEAR_BUFFER, payload_i, payload_len_i});
+
+        if(!write_file(payload_i, payload_len_i, file_name)) {
+            if (!delete_file(file_name)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
+        recvd_file += payload_len_i;
+        delete m2i;
     }
+
+    cout<<"File downloaded"<<endl;
     return true;
 }
 

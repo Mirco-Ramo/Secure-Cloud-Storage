@@ -78,7 +78,6 @@ int main(int argc, char** argv) {
             cout << "Please insert the name of the file you want to download" << endl << PROMPT;
             getline(cin, filename);
 
-            cout<<"I go in check file name"<<endl;
             if(!check_filename_not_traversing(filename)){
                 cout << "The name of the file is not correct, please insert a correct name "
                         "(use the LIST command to check which file are present in your dedicated storage)" << endl << PROMPT;

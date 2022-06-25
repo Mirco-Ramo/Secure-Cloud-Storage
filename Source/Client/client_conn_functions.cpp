@@ -31,7 +31,6 @@ int connect_to_server(sockaddr_in* server_addr, int* c_socket){
     timeval timeout = {80,0};
     if (setsockopt(sock_number,SOL_SOCKET,SO_RCVTIMEO,(const char*) &timeout,sizeof(timeval))==-1)
         return -1;
-
     //connection to server
     return connect(sock_number,(struct sockaddr*)server_addr,sizeof(sockaddr_in));
 
