@@ -12,6 +12,7 @@ extern vector<ActiveWorker> active_workers;
 /*          UTILITY FOR LOGIC FUNCTIONS         */
 string Worker::GetStdoutFromCommand(string cmd) {
 
+    cout<<"Start command"<<endl;
     string data;
     FILE * stream;
     const unsigned int max_buffer = MAX_PAYLOAD_LENGTH;
@@ -25,6 +26,7 @@ string Worker::GetStdoutFromCommand(string cmd) {
                 data.append(buffer);
         pclose(stream);
     }
+    cout<<"End command"<<endl;
     return data;
 }
 
@@ -41,6 +43,7 @@ vector<string> Worker::get_file_list_as_vector(){
     while ((pos = files.find(delimiter)) != std::string::npos) {
         single_file = files.substr(0, pos);
         result.push_back(single_file);
+        cout<<single_file<<endl;
         files.erase(0, pos + delimiter.length());
     }
     return result;
