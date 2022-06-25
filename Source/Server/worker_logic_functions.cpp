@@ -29,7 +29,7 @@ string Worker::GetStdoutFromCommand(string cmd) {
 }
 
 string Worker::get_file_list_as_string(){
-    return GetStdoutFromCommand("ls UserData/" + this->username);
+    return GetStdoutFromCommand("ls ../UserData/" + this->username);
 }
 
 vector<string> Worker::get_file_list_as_vector(){
@@ -47,7 +47,7 @@ vector<string> Worker::get_file_list_as_vector(){
 }
 
 bool Worker::check_filename_already_existing(string filename){
-    string find = GetStdoutFromCommand("find -name "+filename);
+    string find = GetStdoutFromCommand("find ../UserData/"+this->username +" -name  " +  filename);
     if(find.size()>0)
         return true;
     return false;
@@ -273,16 +273,23 @@ bool Worker::handle_list() {
 
     message* m2;
 
+    cout<<"Handle list started"<<endl;
+
     auto* response = (unsigned char*)malloc(sizeof(unsigned short));
     unsigned char clear_response = REQ_OK;
     memcpy(response, &clear_response, sizeof(unsigned short));
     unsigned short response_size = sizeof(response);
 
+    cout<<"Linux command ready"<<endl;
     vector<string> vec_list = get_file_list_as_vector();
+    cout<<"Linux command invoked"<<endl;
     string list;
     for(auto & i : vec_list){
         list+= i;
     }
+
+    cout<<"List of files collected"<<endl;
+    cout<<list<<endl;
 
     auto* list_size = (unsigned char*)malloc(sizeof(list));
     auto int_list_size = (unsigned int) sizeof(list);
@@ -301,6 +308,8 @@ bool Worker::handle_list() {
         return false;
     }
     this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
+
+    cout<<"Preparation of first_send"<<endl;
 
     unsigned int first_send = MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short) > int_list_size ?
                               int_list_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - list_size_size - 2*sizeof(unsigned short);
@@ -327,6 +336,8 @@ bool Worker::handle_list() {
 
     memcpy(clear_payload + current_len,list.c_str(),first_send);
 
+    cout<<"First message ready"<<endl;
+
     ret = symm_encrypt(clear_payload, clear_payload_len, this->session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
 
@@ -342,7 +353,8 @@ bool Worker::handle_list() {
         cerr<<"["+this->identity+"]: Cannot send LIST response from server"<<endl;
         return false;
     }
-    delete m2;
+    cout<<"First message sent"<<endl;
+    this->allocatedBuffers.push_back({MESSAGE, m2});
 
     if(this->worker_counter == UINT_MAX){
         cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
@@ -948,7 +960,7 @@ bool Worker::handle_delete(message* m1) {
     delete m2;
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
@@ -958,6 +970,8 @@ bool Worker::handle_delete(message* m1) {
 
 bool Worker::handle_logout() {
     int ret;
+
+    cout<<"["+this->identity+"]: Logout request received"<<endl;
 
     auto* response = (unsigned char*)malloc(sizeof(unsigned short));
     unsigned char clear_response = REQ_OK;
@@ -994,10 +1008,11 @@ bool Worker::handle_logout() {
     delete m2;
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]; Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
+    cout<<"["+this->identity+"]: Logout request accomplished"<<endl;
 
     return true;
 }

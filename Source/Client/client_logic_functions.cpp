@@ -18,7 +18,7 @@ bool handle_list(int socket_id, const string& identity){
 
     message* m1;
     m1 = build_message(NULL, LIST, 0, NULL, true, hmac_key, client_counter);
-    if(send_msg(socket_id, m1, false, identity) < FIXED_HEADER_LENGTH + DIGEST_LEN){
+    if(send_msg(socket_id, m1, true, identity) < FIXED_HEADER_LENGTH + DIGEST_LEN){
         cerr<<"Cannot send LIST request to server"<<endl;
         return false;
     }
@@ -850,7 +850,7 @@ bool handle_logout(int socket_id, const string& identity){
 
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
-    if(*(payload) != WRONG_FORMAT || *(payload) != REQ_OK){
+    if(*(payload) != WRONG_FORMAT && *(payload) != REQ_OK){
         cerr << "Unmatching response for M2 message" << endl;
         return false;
     }
