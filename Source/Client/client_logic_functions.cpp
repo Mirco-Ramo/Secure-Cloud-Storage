@@ -372,18 +372,27 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
         return true;
     }
     auto* char_file_size = (unsigned char*)malloc(sizeof(unsigned int));
+    if(!char_file_size){
+        cerr << "Cannot allocate buffer for the file size"<<endl;
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, char_file_size, sizeof(unsigned int)});
+
     auto int_file_size = (unsigned int)file_size;
     memcpy(char_file_size, &int_file_size, sizeof(unsigned int));
-    unsigned short file_size_len = sizeof(char_file_size);
+    unsigned short file_size_len = sizeof(unsigned int);
 
     message* m1;
     auto* filename = (unsigned char*)malloc(file_name.size() + 1);
-    memcpy(filename, file_name.c_str(), file_name.size() + 1);
-    unsigned short file_name_size = sizeof(filename);
+    if(!filename){
+        cerr << "Cannot allocate buffer for the filename"<<endl;
+        return false;
+    }
+    unsigned short file_name_size = file_name.size() + 1;
+    allocatedBuffers.push_back({CLEAR_BUFFER, filename, file_name_size});
+    memcpy(filename, file_name.c_str(), file_name_size);
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
-
-    allocatedBuffers.push_back({CLEAR_BUFFER, filename, file_name_size});
 
     auto* IV_buffer = (unsigned char*)malloc(IV_LENGTH);
     if(!IV_buffer){
@@ -409,12 +418,12 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
     memcpy(clear_payload + current_len, &file_size_len, sizeof(unsigned short));
     current_len += sizeof(unsigned short);
-    memcpy(clear_payload + current_len,&char_file_size,file_size_len);
+    memcpy(clear_payload + current_len,char_file_size,file_size_len);
 
     ret = symm_encrypt(clear_payload, clear_payload_len, session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
 
-    allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload, encrypted_payload_len});
+    allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload});
 
     if(ret==0) {
         cerr << "Cannot encrypt message M1!" << endl;
@@ -454,7 +463,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     server_counter++;
 
     if(m2->header.opcode != UPLOAD_RES){
-        cerr<<"Received an M2 response with unexpected opcode: " << m2->header.opcode <<endl;
+        cerr<<"Received an M2 response with unexpected opcode: " << (int)m2->header.opcode <<endl;
         return false;
     }
 
@@ -513,7 +522,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             ret = symm_encrypt(clear_payload_i, clear_payload_len_i, session_key,
                                IV_buffer_i, encrypted_payload_i, encrypted_payload_len_i);
 
-            allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i, encrypted_payload_len_i});
+            allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i});
 
             if(ret==0) {
                 cerr << "Cannot encrypt message M3i!" << endl;
@@ -536,6 +545,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             sent_size += clear_payload_len_i;
         }
     }
+    cout<<"Upload completed"<<endl;
 
     auto* m4 = new message();
     if(recv_msg(socket_id, m4, true, identity)<=0){
@@ -557,7 +567,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     server_counter++;
 
     if(m4->header.opcode != UPLOAD_ACK){
-        cerr<<"Received an M4 response with unexpected opcode: " << m4->header.opcode <<endl;
+        cerr<<"Received an M4 response with unexpected opcode: " << (int)m4->header.opcode <<endl;
         return false;
     }
 
