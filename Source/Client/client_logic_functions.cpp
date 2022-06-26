@@ -393,6 +393,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
 bool handle_upload(int socket_id, const string& identity,  const string& file_name){
     int ret;
 
+    string tokenized_file_name = tokenize_string(file_name);
     bool file_found;
     unsigned long file_size = get_file_size(file_name, file_found);
     if(!file_found){
@@ -415,14 +416,14 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     unsigned short file_size_len = sizeof(unsigned int);
 
     message* m1;
-    auto* filename = (unsigned char*)malloc(file_name.size());
+    auto* filename = (unsigned char*)malloc(tokenized_file_name.size());
     if(!filename){
         cerr << "Cannot allocate buffer for the filename"<<endl;
         return false;
     }
-    unsigned short file_name_size = file_name.size();
+    unsigned short file_name_size = tokenized_file_name.size();
     allocatedBuffers.push_back({CLEAR_BUFFER, filename, file_name_size});
-    memcpy(filename, file_name.c_str(), file_name_size);
+    memcpy(filename, tokenized_file_name.c_str(), file_name_size);
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
 

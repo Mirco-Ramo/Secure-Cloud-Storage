@@ -25,6 +25,16 @@ char* canonicalize(const string& file_name){
     return canon_file_name;
 }
 
+string tokenize_string(string file_name){
+    size_t pos = 0;
+    string filename_portion;
+    string delimiter = "/";
+    while ((pos = file_name.find(delimiter)) != std::string::npos) {
+        file_name.erase(0, pos + delimiter.length());
+    }
+    return file_name;
+}
+
 bool check_permissions(const string& filename){
     const char* filename_chr = canonicalize(filename.c_str());
     if(access(filename_chr, R_OK) || access(filename_chr, W_OK)){
