@@ -891,6 +891,7 @@ bool Worker::handle_rename(message* m1) {
     ret = rename(old_filename.c_str(), new_filename.c_str());
     if(ret != 0){
         cerr << "Impossible to change name to file!" << endl;
+        send_failure_message(INVALID_FILENAME, RENAME_RES, false);
         return true;
     }
 
