@@ -881,7 +881,7 @@ bool Worker::handle_rename(message* m1) {
     }
 
     if(check_filename_already_existing(new_filename)){
-        cerr << "There is already a file with such name in the storage!";
+        cerr << "There is already a file with such name in the storage!"<<endl;
         send_failure_message(DUP_NAME, RENAME_RES, false);
         return true;
     }
@@ -954,16 +954,17 @@ bool Worker::handle_delete(message* m1) {
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
     string filename = string((const char*) payload, payload_len);
+    cout<<filename<<endl;
 
     if(!check_filename_not_traversing(filename)){
         cerr << "The name of the file is not acceptable!" << endl;
-        send_failure_message(INVALID_FILENAME, DELETE_RES, true);
+        send_failure_message(INVALID_FILENAME, DELETE_RES, false);
         return true;
     }
 
     if(!check_filename_already_existing(filename)){
         cerr << "There is no file with such name in the storage!" << endl;
-        send_failure_message(MISSING_FILE, DELETE_RES, true);
+        send_failure_message(MISSING_FILE, DELETE_RES, false);
         return true;
     }
 
