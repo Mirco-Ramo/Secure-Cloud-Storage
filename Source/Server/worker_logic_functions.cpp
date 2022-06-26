@@ -954,7 +954,6 @@ bool Worker::handle_delete(message* m1) {
     allocatedBuffers.push_back({CLEAR_BUFFER, payload, payload_len});
 
     string filename = string((const char*) payload, payload_len);
-    cout<<filename<<endl;
 
     if(!check_filename_not_traversing(filename)){
         cerr << "The name of the file is not acceptable!" << endl;
