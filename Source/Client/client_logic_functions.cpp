@@ -568,7 +568,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
             memcpy(payload_j, encrypted_chunk_i+sent_size_i, payload_len_j);
 
-            m3j = build_message(IV_buffer, DOWNLOAD_DATA, payload_len_j, payload_j, true,
+            m3j = build_message(IV_buffer, UPLOAD_DATA, payload_len_j, payload_j, true,
                                 hmac_key, client_counter);
             if (send_msg(socket_id, m3j, true, identity) <
                 FIXED_HEADER_LENGTH + (int) payload_len_j + DIGEST_LEN) {

@@ -730,7 +730,7 @@ bool Worker::handle_upload(message* m1) {
         }
         client_counter++;
 
-        if (m3j->header.opcode != DOWNLOAD_DATA) {
+        if (m3j->header.opcode != UPLOAD_DATA) {
             cerr << "Received an M3 response with unexpected opcode: " << (int) m3j->header.opcode << endl;
             if (!delete_file(filename)) {
                 cerr << "The file was not downloaded completely, but it was impossible to delete it."

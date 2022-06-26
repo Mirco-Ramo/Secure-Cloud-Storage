@@ -303,7 +303,7 @@ bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string 
 }
 
 bool delete_file(const string &filename){
-    return !remove(filename.c_str());
+    return remove(filename.c_str())!=0;
 }
 
 bool file_already_existing(string filename){
