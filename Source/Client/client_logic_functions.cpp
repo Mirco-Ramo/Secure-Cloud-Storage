@@ -415,12 +415,12 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     unsigned short file_size_len = sizeof(unsigned int);
 
     message* m1;
-    auto* filename = (unsigned char*)malloc(file_name.size() + 1);
+    auto* filename = (unsigned char*)malloc(file_name.size());
     if(!filename){
         cerr << "Cannot allocate buffer for the filename"<<endl;
         return false;
     }
-    unsigned short file_name_size = file_name.size() + 1;
+    unsigned short file_name_size = file_name.size();
     allocatedBuffers.push_back({CLEAR_BUFFER, filename, file_name_size});
     memcpy(filename, file_name.c_str(), file_name_size);
     unsigned int encrypted_payload_len;
@@ -433,7 +433,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     }
     allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
 
-    unsigned short clear_payload_len = file_name_size + int_file_size + 2*sizeof(unsigned short);
+    unsigned short clear_payload_len = file_name_size + file_size_len + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
     if(!clear_payload){
         cerr<<"Cannot allocate buffer for m1"<<endl;
@@ -527,58 +527,67 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
         cerr << "There is already a file with the same name in the storage! Check the files on the store with the LIST command" << endl << PROMPT;
         return true;
     }
-    else{
-        unsigned int sent_size = 0;
-        while(sent_size < int_file_size){
 
-            message* m3i;
-            unsigned int encrypted_payload_len_i;
-            unsigned char* encrypted_payload_i;
+    unsigned int fetched_size=0;
+    unsigned int sent_size_i=0;
+    while(fetched_size<int_file_size) {
+        unsigned int to_fetch = (int_file_size-fetched_size) < MAX_FETCHABLE ? (int_file_size-fetched_size) : MAX_FETCHABLE;
+        auto *clear_chunk_i = read_chunk(file_name, fetched_size, to_fetch);
+        if (!clear_chunk_i) {
+            return false;
+        }
+        allocatedBuffers.push_back({CLEAR_BUFFER, clear_chunk_i, to_fetch});
+        unsigned int encrypted_chunk_len_i;
+        unsigned char *encrypted_chunk_i;
+        ret = symm_encrypt(clear_chunk_i, to_fetch, session_key,
+                           IV_buffer, encrypted_chunk_i, encrypted_chunk_len_i);
+        if (ret == 0) {
+            cerr << "Cannot encrypt message M2!" << endl;
+            return false;
+        }
+        allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
+        fetched_size +=to_fetch;
 
-            auto* IV_buffer_i = (unsigned char*)malloc(IV_LENGTH);
-            if(!IV_buffer_i){
-                cerr<<"Cannot allocate buffer for IV"<<endl;
+        unsigned char* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
+        if(!payload_j){
+            cerr << "Cannot allocate buffer for message" << endl;
+            return false;
+        }
+        allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
+
+        sent_size_i = 0;
+
+        while (sent_size_i < encrypted_chunk_len_i) {
+            message *m3j;
+
+            unsigned int to_send =
+                    (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > encrypted_chunk_len_i - sent_size_i ? encrypted_chunk_len_i - sent_size_i :
+                    MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+
+            unsigned int payload_len_j = to_send;
+
+            memcpy(payload_j, encrypted_chunk_i+sent_size_i, payload_len_j);
+
+            m3j = build_message(IV_buffer, DOWNLOAD_DATA, payload_len_j, payload_j, true,
+                                hmac_key, client_counter);
+            if (send_msg(socket_id, m3j, true, identity) <
+                FIXED_HEADER_LENGTH + (int) payload_len_j + DIGEST_LEN) {
+                cerr << "Cannot send DOWNLOAD_DATA response to client" << endl;
                 return false;
             }
-            allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
+            delete m3j;
 
-            auto* clear_payload_i = read_chunk(file_name, sent_size,
-                                               (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_file_size ? int_file_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN);
-            if(!clear_payload_i){
-                cerr<<"Cannot allocate buffer for m3i"<<endl;
-                return false;
-            }
-            unsigned short clear_payload_len_i = sizeof(clear_payload_i);
-            allocatedBuffers.push_back({CLEAR_BUFFER, clear_payload_i, clear_payload_len_i});
-
-            ret = symm_encrypt(clear_payload_i, clear_payload_len_i, session_key,
-                               IV_buffer_i, encrypted_payload_i, encrypted_payload_len_i);
-
-            allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i});
-
-            if(ret==0) {
-                cerr << "Cannot encrypt message M3i!" << endl;
-                return false;
-            }
-
-            m3i = build_message(IV_buffer_i, UPLOAD_DATA, encrypted_payload_len_i, encrypted_payload_i, true, hmac_key, client_counter);
-            if(send_msg(socket_id, m3i, true, identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
-                cerr<<"Cannot send UPLOAD_DATA request to server"<<endl;
-                return false;
-            }
-            delete m3i;
-
-            if(client_counter == UINT_MAX){
-                cerr << "Maximum number of messages reached for a session, closing connection" << endl;
+            if (client_counter == UINT_MAX) {
+                cerr << "Maximum number of messages reached for a session, closing connection"<< endl;
                 return false;
             }
             client_counter++;
-
-            sent_size += clear_payload_len_i;
+            sent_size_i +=payload_len_j;
         }
     }
     cout<<"Upload completed"<<endl;
 
+    //M4
     auto* m4 = new message();
     if(recv_msg(socket_id, m4, true, identity)<=0){
         cerr<<"Cannot receive M4 from server"<<endl;
@@ -620,7 +629,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
         return false;
     }
     if(WRONG_FORMAT == *(payload_m4)){
-        cerr << "Wrong format for M3 message - " << endl;
+        cerr << "Wrong format for M4 message - " << endl;
         return false;
     }
 

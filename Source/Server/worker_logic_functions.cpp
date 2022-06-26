@@ -530,7 +530,6 @@ bool Worker::handle_download(message* m1) {
     }
     this->worker_counter++;
 
-    unsigned int sent_size = first_send;
     unsigned int fetched_size = first_send;
     unsigned int sent_size_i=0;
 
@@ -594,7 +593,6 @@ bool Worker::handle_download(message* m1) {
             }
             this->worker_counter++;
 
-            sent_size += payload_len_j;
             sent_size_i +=payload_len_j;
         }
     }
@@ -621,7 +619,7 @@ bool Worker::handle_upload(message* m1) {
     auto* file_size = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {file_name, file_size};
-    if(!get_payload_fields(m1->payload, fields, num_fields)){
+    if(!get_payload_fields(payload, fields, num_fields)){
         cerr<<"Cannot unpack payload fields"<<endl;
         return false;
     }
@@ -643,13 +641,15 @@ bool Worker::handle_upload(message* m1) {
         return true;
     }
 
+    filename = "../UserData/" + this->username + "/" + filename;
+
     unsigned int filesize;
     memcpy(&filesize, file_size->field, file_size->field_len);
 
-    auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    auto* response = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response = REQ_OK;
-    memcpy(response, &clear_response, sizeof(unsigned short));
-    unsigned short response_size = sizeof(response);
+    memcpy(response, &clear_response, sizeof(unsigned char));
+    unsigned short response_size = sizeof(unsigned char);
 
     this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
 
@@ -658,7 +658,7 @@ bool Worker::handle_upload(message* m1) {
         cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
         return false;
     }
-    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer});
 
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
@@ -666,7 +666,7 @@ bool Worker::handle_upload(message* m1) {
     ret = symm_encrypt(response, response_size, this->session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
 
-    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload, encrypted_payload_len});
+    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload});
 
     if(ret==0) {
         cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
@@ -686,105 +686,133 @@ bool Worker::handle_upload(message* m1) {
     }
     this->worker_counter++;
 
-    unsigned int recvd_size = 0;
-    while(recvd_size < filesize) {
-        auto *m3i = new message();
-        if (recv_msg(socket_id, m3i, true, identity) <= 0) {
-            cerr << "Cannot receive M3 from server" << endl;
-            if(recvd_size != 0) {
-                if (!delete_file(filename)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it." << endl;
-                }
+    unsigned int recvd_file = 0;
+    unsigned int clear_chunk_buf_len;
+
+    unsigned char* enc_chunk_buf = (unsigned char*)malloc(2*MAX_FETCHABLE);
+    unsigned char* clear_chunk_buf;
+    if(!enc_chunk_buf){
+        cerr << "Cannot allocate buffer to save chunks" << endl;
+        return false;
+    }
+    allocatedBuffers.push_back({ENC_BUFFER, enc_chunk_buf});
+
+    unsigned int recvd_i = 0;
+    while(recvd_file<filesize) {
+        auto *m3j = new message();
+        if (recv_msg(socket_id, m3j, true, identity) <= 0) {
+            cerr << "Cannot receive M3 from client" << endl;
+            cerr << "I downloaded: "<<recvd_file<<endl;
+            if (!delete_file(filename)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
         }
-        allocatedBuffers.push_back({MESSAGE, m3i});
 
-        ret = verify_hmac(m3i, client_counter, hmac_key);
-        if(ret != 1){
+        ret = verify_hmac(m3j, client_counter, hmac_key);
+        if (ret != 1) {
             cerr << "HMAC is not matching, closing connection" << endl;
-            send_failure_message(WRONG_FORMAT, UPLOAD_ACK, true);
-            if(recvd_size != 0) {
-                if (!delete_file(filename)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it." << endl;
-                }
+            if (!delete_file(filename)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
         }
 
-        if(client_counter == UINT_MAX){
+        if (client_counter == UINT_MAX) {
             cerr << "Maximum number of messages reached for a session, closing connection" << endl;
-            if(recvd_size != 0) {
-                if (!delete_file(filename)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it." << endl;
-                }
+            if (!delete_file(filename)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
         }
         client_counter++;
 
-        if (m3i->header.opcode != UPLOAD_DATA) {
-            cerr << "Received an M3 message with unexpected opcode: " << m3i->header.opcode << endl;
-            if(recvd_size != 0) {
-                if (!delete_file(filename)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it." << endl;
-                }
+        if (m3j->header.opcode != DOWNLOAD_DATA) {
+            cerr << "Received an M3 response with unexpected opcode: " << (int) m3j->header.opcode << endl;
+            if (!delete_file(filename)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
         }
 
-        unsigned int payload_len_i;
-        unsigned char *payload_i;
-
-        ret = symm_decrypt(m3i->payload, m3i->header.payload_length,
-                           session_key, m3i->header.initialization_vector, payload_i, payload_len_i);
-        if (ret == 0) {
-            cerr << "Cannot decrypt message M2!" << endl;
-            if(recvd_size != 0) {
+        if(recvd_i>0 && memcmp(IV_buffer, m3j->header.initialization_vector, IV_LENGTH)!=0){
+            ret = symm_decrypt(enc_chunk_buf, recvd_i, session_key, IV_buffer, clear_chunk_buf, clear_chunk_buf_len);
+            if (ret == 0) {
+                cerr << "Cannot decrypt message M2!" << endl;
                 if (!delete_file(filename)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it." << endl;
+                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                            "We suggest to delete the file manually for safety purposes." << endl;
                 }
+                return false;
             }
-            return false;
-        }
 
-        allocatedBuffers.push_back({CLEAR_BUFFER, payload_i, payload_len_i});
-
-        if(!write_file(payload_i, payload_len_i, filename)) {
-            if(recvd_size != 0) {
+            if (!write_file(clear_chunk_buf, clear_chunk_buf_len, filename)) {
                 if (!delete_file(filename)) {
-                    cerr << "The file was not downloaded completely, but it was impossible to delete it." << endl;
+                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                            "We suggest to delete the file manually for safety purposes." << endl;
                 }
+                return false;
             }
-            return false;
+#pragma optimize("", off)
+            memset(clear_chunk_buf, 0, clear_chunk_buf_len);
+#pragma optimze("", on)
+            free(clear_chunk_buf);
+            recvd_i = 0;
         }
-        recvd_size += payload_len_i;
+        memcpy(IV_buffer, m3j->header.initialization_vector, IV_LENGTH);
+        memcpy(enc_chunk_buf + recvd_i, m3j->payload, m3j->header.payload_length);
+        recvd_file += m3j->header.payload_length;
+        recvd_i +=m3j->header.payload_length;
+        delete m3j;
     }
 
-    auto* response_4 = (unsigned char*)malloc(sizeof(unsigned short));
+    if(recvd_i>0){
+        ret = symm_decrypt(enc_chunk_buf, recvd_i, session_key, IV_buffer, clear_chunk_buf, clear_chunk_buf_len);
+        if (ret == 0) {
+            cerr << "Cannot decrypt message M3!" << endl;
+            if (!delete_file(filename)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
+
+        if (!write_file(clear_chunk_buf, clear_chunk_buf_len, filename)) {
+            if (!delete_file(filename)) {
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
+                        "We suggest to delete the file manually for safety purposes." << endl;
+            }
+            return false;
+        }
+#pragma optimize("", off)
+        memset(clear_chunk_buf, 0, clear_chunk_buf_len);
+#pragma optimze("", on)
+        free(clear_chunk_buf);
+    }
+
+
+    //M4
+    auto* response_4 = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response_4 = REQ_OK;
-    memcpy(response_4, &clear_response_4, sizeof(unsigned short));
-    unsigned short response_size_4 = sizeof(response_4);
+    memcpy(response_4, &clear_response_4, sizeof(unsigned char));
+    unsigned short response_size_4 = sizeof(unsigned char);
 
     this->allocatedBuffers.push_back({CLEAR_BUFFER, response_4, response_size_4});
-
-    auto* IV_buffer_4 = (unsigned char*)malloc(IV_LENGTH);
-    if(!IV_buffer_4){
-        cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
-        return false;
-    }
-    this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_4, IV_LENGTH});
 
     unsigned int encrypted_payload_len_4;
     unsigned char* encrypted_payload_4;
 
-    ret = symm_encrypt(response, response_size, this->session_key,
-                       IV_buffer_4, encrypted_payload_4, encrypted_payload_len_4);
+    ret = symm_encrypt(response_4, response_size_4, this->session_key,
+                       IV_buffer, encrypted_payload_4, encrypted_payload_len_4);
 
     this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_4, encrypted_payload_len_4});
 
     if(ret==0) {
-        cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
+        cerr << "["+this->identity+"]: Cannot encrypt message M4!" << endl;
         return false;
     }
 
@@ -793,14 +821,14 @@ bool Worker::handle_upload(message* m1) {
         cerr<<"["+this->identity+"]: Cannot send UPLOAD response from server"<<endl;
         return false;
     }
-    delete m2;
+    delete m4;
 
     if(this->worker_counter == UINT_MAX){
         cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
-
+    cerr << "["+this->identity+"]: Upload correctly completed" << endl;
     return true;
 }
 
