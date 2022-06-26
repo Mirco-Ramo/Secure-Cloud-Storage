@@ -851,7 +851,7 @@ bool Worker::handle_rename(message* m1) {
     auto* char_new_filename = new payload_field();
     unsigned short num_fields = 2;
     payload_field* fields[] = {char_old_filename, char_new_filename};
-    if(!get_payload_fields(m1->payload, fields, num_fields)){
+    if(!get_payload_fields(payload, fields, num_fields)){
         cerr<<"["+this->identity+"]:Cannot unpack payload fields"<<endl;
         return false;
     }
@@ -864,32 +864,29 @@ bool Worker::handle_rename(message* m1) {
 
     if(!check_filename_not_traversing(old_filename)){
         cerr << "["+this->identity+"]:The name of the file is not acceptable!" << endl;
-        send_failure_message(INVALID_FILENAME, RENAME_RES, true);
+        send_failure_message(INVALID_FILENAME, RENAME_RES, false);
         return true;
     }
 
     if(!check_filename_already_existing(old_filename)){
         cerr << "["+this->identity+"]:There is no file with such name in the storage!"<<endl;
-        send_failure_message(MISSING_FILE, RENAME_RES, true);
+        send_failure_message(MISSING_FILE, RENAME_RES, false);
         return true;
     }
 
     if(!check_filename_not_traversing(new_filename)){
         cerr << "The name of the file is not acceptable!" << endl;
-        send_failure_message(INVALID_FILENAME, RENAME_RES, true);
+        send_failure_message(INVALID_FILENAME, RENAME_RES, false);
         return true;
     }
 
     if(check_filename_already_existing(new_filename)){
         cerr << "There is already a file with such name in the storage!";
-        send_failure_message(DUP_NAME, RENAME_RES, true);
+        send_failure_message(DUP_NAME, RENAME_RES, false);
         return true;
     }
     old_filename = "../UserData/" + this->username + "/" + old_filename;
     new_filename = "../UserData/" + this->username + "/" + new_filename;
-
-    allocatedBuffers.push_back({CLEAR_BUFFER, &old_filename, sizeof(old_filename)});
-    allocatedBuffers.push_back({CLEAR_BUFFER, &new_filename, sizeof(new_filename)});
 
     ret = rename(old_filename.c_str(), new_filename.c_str());
     if(ret != 0){
@@ -897,10 +894,10 @@ bool Worker::handle_rename(message* m1) {
         return true;
     }
 
-    auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    auto* response = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response = REQ_OK;
-    memcpy(response, &clear_response, sizeof(unsigned short));
-    unsigned short response_size = sizeof(response);
+    memcpy(response, &clear_response, sizeof(unsigned char));
+    unsigned short response_size = sizeof(unsigned char);
 
     this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
 
@@ -932,11 +929,11 @@ bool Worker::handle_rename(message* m1) {
     delete m2;
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
-
+    cout << "["+this->identity+"]: Rename completed" << endl;
     return true;
 }
 
@@ -957,8 +954,6 @@ bool Worker::handle_delete(message* m1) {
 
     string filename = string((const char*) payload, payload_len);
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, &filename, sizeof(filename)});
-
     if(!check_filename_not_traversing(filename)){
         cerr << "The name of the file is not acceptable!" << endl;
         send_failure_message(INVALID_FILENAME, DELETE_RES, true);
@@ -971,15 +966,17 @@ bool Worker::handle_delete(message* m1) {
         return true;
     }
 
+    filename = "../UserData/" + this->username + "/" + filename;
+
     if(!delete_file(filename)){
         cerr << "Error in deleting the file!" << endl;
         return false;
     }
 
-    auto* response = (unsigned char*)malloc(sizeof(unsigned short));
+    auto* response = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response = REQ_OK;
-    memcpy(response, &clear_response, sizeof(unsigned short));
-    unsigned short response_size = sizeof(response);
+    memcpy(response, &clear_response, sizeof(unsigned char));
+    unsigned short response_size = sizeof(unsigned char);
 
     this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
 
@@ -996,7 +993,7 @@ bool Worker::handle_delete(message* m1) {
     ret = symm_encrypt(response, response_size, this->session_key,
                        IV_buffer, encrypted_payload, encrypted_payload_len);
 
-    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload, encrypted_payload_len});
+    this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload});
 
     if(ret==0) {
         cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
@@ -1016,6 +1013,7 @@ bool Worker::handle_delete(message* m1) {
     }
     this->worker_counter++;
 
+    cout << "["+this->identity+"]: Delete completed" << endl;
     return true;
 }
 

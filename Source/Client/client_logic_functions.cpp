@@ -642,12 +642,20 @@ bool handle_rename(int socket_id, const string& identity,  const string& old_fil
     int ret;
 
     message* m1;
-    auto* old_filename = (unsigned char*)malloc(old_file_name.size() + 1);
-    memcpy(old_filename, old_file_name.c_str(), old_file_name.size() + 1);
-    unsigned short old_file_name_size = sizeof(old_filename);
-    auto* new_filename = (unsigned char*)malloc(new_file_name.size() + 1);
-    memcpy(new_filename, new_file_name.c_str(), new_file_name.size() + 1);
-    unsigned short new_file_name_size = sizeof(new_filename);
+    auto* old_filename = (unsigned char*)malloc(old_file_name.size());
+    if(!old_filename){
+        cerr << "Cannot allocate buffer for filename" << endl;
+        return false;
+    }
+    memcpy(old_filename, old_file_name.c_str(), old_file_name.size());
+    unsigned short old_file_name_size = old_file_name.size();
+    auto* new_filename = (unsigned char*)malloc(new_file_name.size());
+    if(!new_filename){
+        cerr << "Cannot allocate buffer for filename" << endl;
+        return false;
+    }
+    memcpy(new_filename, new_file_name.c_str(), new_file_name.size());
+    unsigned short new_file_name_size = new_file_name.size();
     unsigned int encrypted_payload_len;
     unsigned char* encrypted_payload;
 
@@ -767,8 +775,8 @@ bool handle_delete(int socket_id, const string& identity,  const string& file_na
     int ret;
 
     message* m1;
-    auto* filename = (unsigned char*)malloc(file_name.size() + 1);
-    memcpy(filename, file_name.c_str(), file_name.size() + 1);
+    auto* filename = (unsigned char*)malloc(file_name.size());
+    memcpy(filename, file_name.c_str(), file_name.size());
 
     allocatedBuffers.push_back({CLEAR_BUFFER, filename, sizeof(filename)});
 

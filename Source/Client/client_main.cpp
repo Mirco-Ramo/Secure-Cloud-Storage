@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
             getline(cin, old_filename);
             cout << endl << PROMPT;
 
-            if(!check_file_name(old_filename)){
+            if(!check_filename_not_traversing(old_filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
                 continue;
             }
@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
             cout << "Please insert the new name you want to give to the file (must not be already present as a name of a file in the storage)" << endl << PROMPT;
             getline(cin, new_filename);
 
-            if(!check_file_name(new_filename)){
+            if(!check_filename_not_traversing(new_filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
                 continue;
             }
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
             cout << "Please insert the name of the file you want to delete" << endl << PROMPT;
             getline(cin,filename);
 
-            if(!check_file_name(filename)){
+            if(!check_filename_not_traversing(filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
                 continue;
             }
