@@ -14,6 +14,7 @@
 #define IV_LENGTH           16 //(unsigned int)EVP_CIPHER_iv_length(CIPHER)
 #define OPCODE_LENGTH       1
 #define MAX_PAYLOAD_LENGTH  32*1024 //500 Kb
+#define MAX_FETCHABLE       16*1024*1024
 #define KEY_LEN             16 //EVP_CIPHER_key_length(CIPHER)
 #define BLOCK_LEN           16 //(unsigned int)EVP_CIPHER_block_size(CIPHER context)
 #define MAC_TYPE            EVP_sha256()

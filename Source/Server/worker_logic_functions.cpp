@@ -430,8 +430,6 @@ bool Worker::handle_download(message* m1) {
 
     string filename = string((const char*) payload, payload_len-1);
 
-    cout<<filename<<endl;
-
     if(!check_filename_not_traversing(filename)){
         cerr << "["+this->identity+"]: The name of the file is not acceptable!" << endl;
         send_failure_message(INVALID_FILENAME, DOWNLOAD_RES, true);
@@ -439,12 +437,10 @@ bool Worker::handle_download(message* m1) {
     }
 
     filename = "../UserData/" + this->username + "/" + filename;
-    cout<<GetStdoutFromCommand("pwd")<<"\t"<<filename<<endl;
-
     bool file_found;
 
     unsigned long file_size = get_file_size(filename, file_found);
-    cout<<"file size is: "<<file_size<<endl;
+    cout<<"["+this->identity+"]: Requested file size is: "<<file_size<<endl;
     if(!file_found){
         cerr << "["+this->identity+"]: File not found!"<<endl;
         if (!send_failure_message(MISSING_FILE, DOWNLOAD_RES, true)){
@@ -460,16 +456,12 @@ bool Worker::handle_download(message* m1) {
     memcpy(char_file_size, &int_file_size, sizeof(unsigned int));
     unsigned short file_size_len = sizeof(unsigned int);
 
-    cout<<"Fields buffer allocated"<<endl;
-
     this->allocatedBuffers.push_back({CLEAR_BUFFER, char_file_size, file_size_len});
 
     auto* response = (unsigned char*)malloc(sizeof(unsigned char));
     unsigned char clear_response = REQ_OK;
     memcpy(response, &clear_response, sizeof(unsigned char));
     unsigned short response_size = sizeof(unsigned char);
-
-    cout<<"Additional fiels allocated"<<endl;
 
     this->allocatedBuffers.push_back({CLEAR_BUFFER, response, response_size});
 
@@ -482,8 +474,6 @@ bool Worker::handle_download(message* m1) {
 
     unsigned int first_send = MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - file_size_len - 2*sizeof(unsigned short) > int_file_size ?
                      int_file_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN - response_size - file_size_len - 2*sizeof(unsigned short);
-
-    cout<<"First send is: "<<first_send<<endl;
 
     unsigned int clear_payload_len = response_size + file_size_len + first_send + 2*sizeof(unsigned short);
     auto* clear_payload = (unsigned char*)malloc(clear_payload_len);
@@ -525,20 +515,13 @@ bool Worker::handle_download(message* m1) {
     if(ret==0) {
         cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
         return false;
-    }
-    cout<<"Encrypted portion is: "<<encrypted_payload_len<<endl;
+    };
     message* m2 = build_message(IV_buffer, DOWNLOAD_RES, encrypted_payload_len, encrypted_payload, true, this->hmac_key, this->worker_counter);
-    int receive_buf;
-    socklen_t buf_size = sizeof(receive_buf);
-    getsockopt(this->socket_id, SOL_SOCKET, SO_SNDBUF, &receive_buf, &buf_size);
-
-    cout<<receive_buf<<endl;
 
     if(send_msg(this->socket_id, m2, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len + DIGEST_LEN){
         cerr<<"["+this->identity+"]: Cannot send DOWNLOAD response from server"<<endl;
         return false;
     }
-    cout<<"Send completed"<<endl;
     delete m2;
 
     if(this->worker_counter == UINT_MAX){
@@ -548,53 +531,74 @@ bool Worker::handle_download(message* m1) {
     this->worker_counter++;
 
     unsigned int sent_size = first_send;
+    unsigned int fetched_size = first_send;
+    unsigned int sent_size_i=0;
 
-    while(sent_size < int_file_size){
-        message* m2i;
-        unsigned int encrypted_payload_len_i;
-        unsigned char* encrypted_payload_i;
-
-        auto* IV_buffer_i = (unsigned char*)malloc(IV_LENGTH);
-        if(!IV_buffer_i){
-            cerr<<"["+this->identity+"]: Cannot allocate buffer for IV"<<endl;
+    while(fetched_size<int_file_size) {
+        auto *IV_buffer_i = (unsigned char *) malloc(IV_LENGTH);
+        if (!IV_buffer_i) {
+            cerr << "[" + this->identity + "]: Cannot allocate buffer for IV" << endl;
             return false;
         }
         this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
-
-        unsigned int to_send = (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > int_file_size - sent_size ? int_file_size - sent_size : MAX_PAYLOAD_LENGTH - BLOCK_LEN;
-
-        auto* clear_payload_i = read_chunk(filename, sent_size, to_send);
-        if(!clear_payload_i){
+        unsigned int to_fetch = (int_file_size-fetched_size) < MAX_FETCHABLE ? (int_file_size-fetched_size) : MAX_FETCHABLE;
+        auto *clear_chunk_i = read_chunk(filename, fetched_size, to_fetch);
+        if (!clear_chunk_i) {
             return false;
         }
-        unsigned int clear_payload_len_i = to_send;
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_payload_i, clear_payload_len_i});
-
-        ret = symm_encrypt(clear_payload_i, clear_payload_len_i, this->session_key,
-                           IV_buffer_i, encrypted_payload_i, encrypted_payload_len_i);
-        if(ret==0) {
-            cerr << "["+this->identity+"]: Cannot encrypt message M2!" << endl;
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_chunk_i, to_fetch});
+        unsigned int encrypted_chunk_len_i;
+        unsigned char *encrypted_chunk_i;
+        ret = symm_encrypt(clear_chunk_i, to_fetch, this->session_key,
+                           IV_buffer_i, encrypted_chunk_i, encrypted_chunk_len_i);
+        if (ret == 0) {
+            cerr << "[" + this->identity + "]: Cannot encrypt message M2!" << endl;
             return false;
         }
-        this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_payload_i});
+        this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
+        fetched_size +=to_fetch;
 
-        m2i = build_message(IV_buffer_i, DOWNLOAD_DATA, encrypted_payload_len_i, encrypted_payload_i, true, this->hmac_key, this->worker_counter);
-        if(send_msg(this->socket_id, m2i, true, this->identity) < FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN){
-            cerr<<"["+this->identity+"]: Cannot send DOWNLOAD_DATA response to client"<<endl;
+        unsigned char* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
+        if(!payload_j){
+            cerr << "[" + this->identity + "]: Cannot allocate buffer for message" << endl;
             return false;
         }
-        cout<<"I just sent: " <<FIXED_HEADER_LENGTH + (int)encrypted_payload_len_i + DIGEST_LEN<<endl;
-        delete m2i;
+        this->allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
 
-        if(this->worker_counter == UINT_MAX){
-            cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
-            return false;
+        sent_size_i = 0;
+
+        while (sent_size_i < encrypted_chunk_len_i) {
+            message *m2j;
+
+            unsigned int to_send =
+                    (MAX_PAYLOAD_LENGTH - BLOCK_LEN) > encrypted_chunk_len_i - sent_size_i ? encrypted_chunk_len_i - sent_size_i :
+                    MAX_PAYLOAD_LENGTH - BLOCK_LEN;
+
+            unsigned int payload_len_j = to_send;
+
+            memcpy(payload_j, encrypted_chunk_i+sent_size_i, payload_len_j);
+
+            m2j = build_message(IV_buffer_i, DOWNLOAD_DATA, payload_len_j, payload_j, true,
+                                this->hmac_key, this->worker_counter);
+            if (send_msg(this->socket_id, m2j, true, this->identity) <
+                FIXED_HEADER_LENGTH + (int) payload_len_j + DIGEST_LEN) {
+                cerr << "[" + this->identity + "]: Cannot send DOWNLOAD_DATA response to client" << endl;
+                return false;
+            }
+            delete m2j;
+
+            if (this->worker_counter == UINT_MAX) {
+                cerr << "[" + this->identity + "]: Maximum number of messages reached for a session, closing connection"
+                     << endl;
+                return false;
+            }
+            this->worker_counter++;
+
+            sent_size += payload_len_j;
+            sent_size_i +=payload_len_j;
         }
-        this->worker_counter++;
-
-        sent_size += clear_payload_len_i;
     }
-
+    cout << "[" + this->identity + "]: Download correctly completed"<< endl;
     return true;
 }
 

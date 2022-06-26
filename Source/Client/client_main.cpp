@@ -84,6 +84,11 @@ int main(int argc, char** argv) {
                 continue;
             }
 
+            /*if(file_already_existing(filename)){
+                cout<<"Warning, file already exists and it will be overwritten"<<endl;
+                delete_file(filename);
+            }*/
+
             if(!handle_download(client_socket, identity, filename)){
                 cerr << "Error in contacting the server, disconnecting!" << endl;
                 clean_all();

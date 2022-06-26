@@ -16,7 +16,7 @@ bool check_filename_not_traversing(const string& file_name);
 bool command_ok(const std::string& command);
 
 
-/*          MESSAGE EXCHANGE        */
+/*          MESSAGE EXCHANGE AND FILE ACCESS       */
 message* build_message(unsigned char* iv, unsigned char opcode, unsigned int payload_length, unsigned char* payload, bool hmac, unsigned char* hmac_key=NULL, unsigned int counter=0);
 int send_msg(int socket_id, message* msg, bool hmac, std::string identity);
 int recv_msg(int socket_id, message *msg, bool hmac, std::string identity);
@@ -25,6 +25,7 @@ unsigned long get_file_size(const string &filename, bool &file_found);
 unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsigned int max_read);
 bool delete_file(const string &filename);
 bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename);
+bool file_already_existing(const string& filename);
 
 
 /*          CRYPTO FUNCTIONS        */
