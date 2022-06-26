@@ -159,7 +159,7 @@ void* Worker::handle_commands() {
                 ret = verify_hmac(m1, this->client_counter, this->hmac_key);
                 if(ret != 1){
                     cerr << "HMAC is not matching, closing connection" << endl;
-                    send_failure_message(WRONG_FORMAT, UPLOAD_RES, true);
+                    send_failure_message(WRONG_FORMAT, UPLOAD_RES, false);
                     err = true;
                     break;
                 }
@@ -183,7 +183,7 @@ void* Worker::handle_commands() {
                 ret = verify_hmac(m1, this->client_counter, this->hmac_key);
                 if(ret != 1){
                     cerr << "HMAC is not matching, closing connection" << endl;
-                    send_failure_message(WRONG_FORMAT, RENAME_RES, true);
+                    send_failure_message(WRONG_FORMAT, RENAME_RES, false);
                     err = true;
                     break;
                 }
@@ -207,7 +207,7 @@ void* Worker::handle_commands() {
                 ret = verify_hmac(m1, this->client_counter, this->hmac_key);
                 if(ret != 1){
                     cerr << "HMAC is not matching, closing connection" << endl;
-                    send_failure_message(WRONG_FORMAT, DELETE_RES, true);
+                    send_failure_message(WRONG_FORMAT, DELETE_RES, false);
                     err = true;
                     break;
                 }
@@ -231,14 +231,14 @@ void* Worker::handle_commands() {
                 ret = verify_hmac(m1, this->client_counter, this->hmac_key);
                 if(ret != 1){
                     cerr << "["+this->identity+"]: HMAC is not matching, closing connection" << endl;
-                    send_failure_message(WRONG_FORMAT, LOGOUT_RES, true);
+                    send_failure_message(WRONG_FORMAT, LOGOUT_RES, false);
                     err = true;
                     break;
                 }
 
                 if(m1->header.payload_length != 0){
                     cerr << "["+this->identity+"]: Payload is not empty! I don't trust you!" << endl;
-                    send_failure_message(WRONG_FORMAT, LOGOUT_RES, true);
+                    send_failure_message(WRONG_FORMAT, LOGOUT_RES, false);
                     err = true;
                     break;
                 }
@@ -631,13 +631,13 @@ bool Worker::handle_upload(message* m1) {
 
     if(!check_filename_not_traversing(filename)){
         cerr << "The name of the file is not acceptable!" << endl;
-        send_failure_message(INVALID_FILENAME, UPLOAD_RES, true);
+        send_failure_message(INVALID_FILENAME, UPLOAD_RES, false);
         return true;
     }
 
     if(check_filename_already_existing(filename)){
-        cerr << "There is already a file with the same name in the storage!";
-        send_failure_message(DUP_NAME, UPLOAD_RES, true);
+        cerr << "There is already a file with the same name in the storage!"<<endl;
+        send_failure_message(DUP_NAME, UPLOAD_RES, false);
         return true;
     }
 
@@ -852,7 +852,7 @@ bool Worker::handle_rename(message* m1) {
     unsigned short num_fields = 2;
     payload_field* fields[] = {char_old_filename, char_new_filename};
     if(!get_payload_fields(m1->payload, fields, num_fields)){
-        cerr<<"Cannot unpack payload fields"<<endl;
+        cerr<<"["+this->identity+"]:Cannot unpack payload fields"<<endl;
         return false;
     }
 
@@ -863,15 +863,13 @@ bool Worker::handle_rename(message* m1) {
     string new_filename = string((const char*) char_new_filename->field, char_new_filename->field_len);
 
     if(!check_filename_not_traversing(old_filename)){
-        cerr << "The name of the file is not acceptable!" << endl;
+        cerr << "["+this->identity+"]:The name of the file is not acceptable!" << endl;
         send_failure_message(INVALID_FILENAME, RENAME_RES, true);
         return true;
     }
 
-    old_filename = "UserData/" + old_filename;
-
     if(!check_filename_already_existing(old_filename)){
-        cerr << "There is no file with such name in the storage!";
+        cerr << "["+this->identity+"]:There is no file with such name in the storage!"<<endl;
         send_failure_message(MISSING_FILE, RENAME_RES, true);
         return true;
     }
@@ -882,13 +880,13 @@ bool Worker::handle_rename(message* m1) {
         return true;
     }
 
-    new_filename = "UserData/" + new_filename;
-
     if(check_filename_already_existing(new_filename)){
         cerr << "There is already a file with such name in the storage!";
         send_failure_message(DUP_NAME, RENAME_RES, true);
         return true;
     }
+    old_filename = "../UserData/" + this->username + "/" + old_filename;
+    new_filename = "../UserData/" + this->username + "/" + new_filename;
 
     allocatedBuffers.push_back({CLEAR_BUFFER, &old_filename, sizeof(old_filename)});
     allocatedBuffers.push_back({CLEAR_BUFFER, &new_filename, sizeof(new_filename)});
