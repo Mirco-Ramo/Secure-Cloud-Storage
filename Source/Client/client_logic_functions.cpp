@@ -775,10 +775,11 @@ bool handle_delete(int socket_id, const string& identity,  const string& file_na
     int ret;
 
     message* m1;
-    auto* filename = (unsigned char*)malloc(file_name.size());
-    memcpy(filename, file_name.c_str(), file_name.size());
+    unsigned int file_name_size = file_name.size();
+    auto* filename = (unsigned char*)malloc(file_name_size);
+    memcpy(filename, file_name.c_str(), file_name_size);
 
-    allocatedBuffers.push_back({CLEAR_BUFFER, filename, sizeof(filename)});
+    allocatedBuffers.push_back({CLEAR_BUFFER, filename, file_name_size});
 
     unsigned int encrypted_filename_len;
     unsigned char* encrypted_filename;
@@ -790,7 +791,7 @@ bool handle_delete(int socket_id, const string& identity,  const string& file_na
 
     allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer, IV_LENGTH});
 
-    ret = symm_encrypt(filename, sizeof(filename), session_key,
+    ret = symm_encrypt(filename, file_name_size, session_key,
                        IV_buffer, encrypted_filename, encrypted_filename_len);
 
     allocatedBuffers.push_back({ENC_BUFFER, encrypted_filename, encrypted_filename_len});
