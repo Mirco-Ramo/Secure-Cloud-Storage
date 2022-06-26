@@ -25,7 +25,7 @@ unsigned long get_file_size(const string &filename, bool &file_found);
 unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsigned int max_read);
 bool delete_file(const string &filename);
 bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename);
-bool file_already_existing(const string& filename);
+bool file_already_existing(string filename);
 
 
 /*          CRYPTO FUNCTIONS        */

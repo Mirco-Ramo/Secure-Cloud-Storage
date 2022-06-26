@@ -46,5 +46,5 @@ void shutdown(int received_signal){
     memset(hmac_key, 0, HMAC_KEY_LEN);
 #pragma optimize("", on)
     close(client_socket);
-    exit(-3);
+    exit(received_signal);
 }

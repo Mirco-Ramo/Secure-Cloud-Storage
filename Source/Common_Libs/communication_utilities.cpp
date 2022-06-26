@@ -306,7 +306,7 @@ bool delete_file(const string &filename){
     return remove(filename.c_str());
 }
 
-bool file_already_existing(const string& filename){
-    ifstream infile(filename);
+bool file_already_existing(string filename){
+    ifstream infile(filename.c_str());
     return infile.good();
 }
