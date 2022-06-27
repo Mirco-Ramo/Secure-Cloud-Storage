@@ -280,6 +280,11 @@ unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsign
 
     memcpy(chunk, app, max_read);
 
+#pragma optimize("", off)
+    memset(app, 0, max_read);
+#pragma optimze("", on)
+    free(app);
+
     return chunk;
 }
 
