@@ -537,6 +537,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     unsigned char* clear_chunk_i;
     unsigned int encrypted_chunk_len_i;
     unsigned char *encrypted_chunk_i;
+    allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
     auto* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
     if(!payload_j){
         cerr << "Cannot allocate buffer for message" << endl;
@@ -550,14 +551,12 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
         if (!clear_chunk_i) {
             return false;
         }
-        allocatedBuffers.push_back({CLEAR_BUFFER, clear_chunk_i, to_fetch});
         ret = symm_encrypt(clear_chunk_i, to_fetch, session_key,
                            IV_buffer, encrypted_chunk_i, encrypted_chunk_len_i);
         if (ret == 0) {
             cerr << "Cannot encrypt message M2!" << endl;
             return false;
         }
-        allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
         fetched_size +=to_fetch;
 
         sent_size_i = 0;
