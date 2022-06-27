@@ -297,7 +297,7 @@ bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string 
         cerr << "Cannot open the file!" << endl;
         return false;
     }
-    outfile << app;
+    outfile.write(app.data(), app.size());
     if(outfile.bad()){
         cerr << "Writing to file failed!" << endl;
         return false;

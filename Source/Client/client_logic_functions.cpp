@@ -290,8 +290,9 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
     unsigned int clear_chunk_buf_len;
 
     unsigned int recvd_i = 0;
+    message* m2j;
     while(recvd_file<total_file_size) {
-        auto *m2j = new message();
+        m2j = new message();
         if (recv_msg(socket_id, m2j, true, identity) <= 0) {
             cerr << "Cannot receive M2 from server" << endl;
             cerr << "I downloaded: "<<recvd_file<<endl;
