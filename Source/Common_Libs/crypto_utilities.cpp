@@ -48,6 +48,8 @@ bool check_file_name(const string& file_name){
     if(canon_file_name == NULL)
         return false;
 
+    cout<<"Canonicalization done"<<endl;
+
     if(strncmp(canon_file_name, "/home/", strlen("/home/")) != 0) {
         free(canon_file_name);
         return false;
