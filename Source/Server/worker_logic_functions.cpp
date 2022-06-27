@@ -540,7 +540,6 @@ bool Worker::handle_download(message* m1) {
         cerr << "[" + this->identity + "]: Cannot allocate buffer for message" << endl;
         return false;
     }
-    this->allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
 
     while(fetched_size<int_file_size) {
 
@@ -549,7 +548,6 @@ bool Worker::handle_download(message* m1) {
         if (!clear_chunk_i) {
             return false;
         }
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_chunk_i, to_fetch});
 
         ret = symm_encrypt(clear_chunk_i, to_fetch, this->session_key,
                            IV_buffer, encrypted_chunk_i, encrypted_chunk_len_i);
@@ -557,7 +555,6 @@ bool Worker::handle_download(message* m1) {
             cerr << "[" + this->identity + "]: Cannot encrypt message M2!" << endl;
             return false;
         }
-        this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
 
         fetched_size +=to_fetch;
 
@@ -594,7 +591,6 @@ bool Worker::handle_download(message* m1) {
         }
 
         free(encrypted_chunk_i);
-
 #pragma optimize("", off)
         memset(clear_chunk_i, 0, to_fetch);
 #pragma optimze("", on)

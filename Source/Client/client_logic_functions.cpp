@@ -574,7 +574,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
                                 hmac_key, client_counter);
             if (send_msg(socket_id, m3j, true, identity) <
                 FIXED_HEADER_LENGTH + (int) payload_len_j + DIGEST_LEN) {
-                cerr << "Cannot send DOWNLOAD_DATA response to client" << endl;
+                cerr << "Cannot send UPLOAD DATA to server" << endl;
                 return false;
             }
             delete m3j;
