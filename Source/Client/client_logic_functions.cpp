@@ -362,6 +362,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         recvd_file += m2j->header.payload_length;
         recvd_i +=m2j->header.payload_length;
         delete m2j;
+        usleep(1000);
     }
 
     if(recvd_i>0){
