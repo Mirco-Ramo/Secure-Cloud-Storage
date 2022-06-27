@@ -531,37 +531,35 @@ bool Worker::handle_download(message* m1) {
 
     unsigned int fetched_size = first_send;
     unsigned int sent_size_i=0;
+    unsigned char *clear_chunk_i;
+    unsigned int encrypted_chunk_len_i;
+    unsigned char *encrypted_chunk_i;
+
+    auto* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
+    if(!payload_j){
+        cerr << "[" + this->identity + "]: Cannot allocate buffer for message" << endl;
+        return false;
+    }
+    this->allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
 
     while(fetched_size<int_file_size) {
-        auto *IV_buffer_i = (unsigned char *) malloc(IV_LENGTH);
-        if (!IV_buffer_i) {
-            cerr << "[" + this->identity + "]: Cannot allocate buffer for IV" << endl;
-            return false;
-        }
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, IV_buffer_i, IV_LENGTH});
+
         unsigned int to_fetch = (int_file_size-fetched_size) < MAX_FETCHABLE ? (int_file_size-fetched_size) : MAX_FETCHABLE;
-        auto *clear_chunk_i = read_chunk(filename, fetched_size, to_fetch);
+        clear_chunk_i = read_chunk(filename, fetched_size, to_fetch);
         if (!clear_chunk_i) {
             return false;
         }
         this->allocatedBuffers.push_back({CLEAR_BUFFER, clear_chunk_i, to_fetch});
-        unsigned int encrypted_chunk_len_i;
-        unsigned char *encrypted_chunk_i;
+
         ret = symm_encrypt(clear_chunk_i, to_fetch, this->session_key,
-                           IV_buffer_i, encrypted_chunk_i, encrypted_chunk_len_i);
+                           IV_buffer, encrypted_chunk_i, encrypted_chunk_len_i);
         if (ret == 0) {
             cerr << "[" + this->identity + "]: Cannot encrypt message M2!" << endl;
             return false;
         }
         this->allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
-        fetched_size +=to_fetch;
 
-        unsigned char* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
-        if(!payload_j){
-            cerr << "[" + this->identity + "]: Cannot allocate buffer for message" << endl;
-            return false;
-        }
-        this->allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
+        fetched_size +=to_fetch;
 
         sent_size_i = 0;
 
@@ -576,7 +574,7 @@ bool Worker::handle_download(message* m1) {
 
             memcpy(payload_j, encrypted_chunk_i+sent_size_i, payload_len_j);
 
-            m2j = build_message(IV_buffer_i, DOWNLOAD_DATA, payload_len_j, payload_j, true,
+            m2j = build_message(IV_buffer, DOWNLOAD_DATA, payload_len_j, payload_j, true,
                                 this->hmac_key, this->worker_counter);
             if (send_msg(this->socket_id, m2j, true, this->identity) <
                 FIXED_HEADER_LENGTH + (int) payload_len_j + DIGEST_LEN) {
@@ -594,7 +592,17 @@ bool Worker::handle_download(message* m1) {
 
             sent_size_i +=payload_len_j;
         }
+
+        free(encrypted_chunk_i);
+
+#pragma optimize("", off)
+        memset(clear_chunk_i, 0, to_fetch);
+#pragma optimze("", on)
+        free(clear_chunk_i);
     }
+
+    free(payload_j);
+
     cout << "[" + this->identity + "]: Download correctly completed"<< endl;
     return true;
 }

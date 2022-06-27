@@ -534,15 +534,23 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
 
     unsigned int fetched_size=0;
     unsigned int sent_size_i=0;
+    unsigned char* clear_chunk_i;
+    unsigned int encrypted_chunk_len_i;
+    unsigned char *encrypted_chunk_i;
+    auto* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
+    if(!payload_j){
+        cerr << "Cannot allocate buffer for message" << endl;
+        return false;
+    }
+    allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
+
     while(fetched_size<int_file_size) {
         unsigned int to_fetch = (int_file_size-fetched_size) < MAX_FETCHABLE ? (int_file_size-fetched_size) : MAX_FETCHABLE;
-        auto *clear_chunk_i = read_chunk(file_name, fetched_size, to_fetch);
+        clear_chunk_i = read_chunk(file_name, fetched_size, to_fetch);
         if (!clear_chunk_i) {
             return false;
         }
         allocatedBuffers.push_back({CLEAR_BUFFER, clear_chunk_i, to_fetch});
-        unsigned int encrypted_chunk_len_i;
-        unsigned char *encrypted_chunk_i;
         ret = symm_encrypt(clear_chunk_i, to_fetch, session_key,
                            IV_buffer, encrypted_chunk_i, encrypted_chunk_len_i);
         if (ret == 0) {
@@ -551,13 +559,6 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
         }
         allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
         fetched_size +=to_fetch;
-
-        unsigned char* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
-        if(!payload_j){
-            cerr << "Cannot allocate buffer for message" << endl;
-            return false;
-        }
-        allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
 
         sent_size_i = 0;
 
@@ -589,8 +590,17 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             sent_size_i +=payload_len_j;
         }
 
+#pragma optimize("", off)
+        memset(clear_chunk_i, 0, to_fetch);
+#pragma optimze("", on)
+        free(clear_chunk_i);
+        free(encrypted_chunk_i);
+
         cout << "Sent " + to_string(fetched_size) + " bytes of " + to_string(int_file_size) << endl;
     }
+
+    free(payload_j);
+
     cout<<"Upload completed"<<endl;
 
     //M4
