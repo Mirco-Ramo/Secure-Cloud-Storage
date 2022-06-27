@@ -589,7 +589,6 @@ bool Worker::handle_download(message* m1) {
 
             sent_size_i +=payload_len_j;
             cout << "Sent " + to_string(sent_size_i) + " bytes of " + to_string(int_file_size) << endl;
-            usleep(8000);
         }
 
         free(encrypted_chunk_i);
