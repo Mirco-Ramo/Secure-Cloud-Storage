@@ -384,7 +384,6 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
         }
 
         cout << "Received " + to_string(recvd_file) + " bytes of " + to_string(total_file_size) << endl;
-        usleep(1000);
 
 #pragma optimize("", off)
         memset(clear_chunk_buf, 0, clear_chunk_buf_len);
