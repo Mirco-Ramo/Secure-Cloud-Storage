@@ -1075,7 +1075,7 @@ Worker::~Worker() {
 #pragma optimize("", on)
     clean_all();
     close(this->socket_id);
-    for (auto activeWorker : active_workers){
+    for (auto &activeWorker : active_workers){
         if (activeWorker.id == this->id)
             activeWorker.pointer = NULL;
     }
