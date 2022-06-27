@@ -537,13 +537,11 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
     unsigned char* clear_chunk_i;
     unsigned int encrypted_chunk_len_i;
     unsigned char *encrypted_chunk_i;
-    allocatedBuffers.push_back({ENC_BUFFER, encrypted_chunk_i});
     auto* payload_j = (unsigned char*)malloc(MAX_PAYLOAD_LENGTH);
     if(!payload_j){
         cerr << "Cannot allocate buffer for message" << endl;
         return false;
     }
-    allocatedBuffers.push_back({CLEAR_BUFFER, payload_j, MAX_PAYLOAD_LENGTH});
 
     while(fetched_size<int_file_size) {
         unsigned int to_fetch = (int_file_size-fetched_size) < MAX_FETCHABLE ? (int_file_size-fetched_size) : MAX_FETCHABLE;
