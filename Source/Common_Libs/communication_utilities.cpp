@@ -303,6 +303,7 @@ bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string 
         return false;
     }
     outfile.close();
+    app.clear();
     return true;
 }
 
