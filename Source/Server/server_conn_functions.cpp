@@ -101,7 +101,6 @@ void shutdown_server(int received_signal){
         if(active_worker.pointer!=NULL)
             delete active_worker.pointer;
     }
-    //TODO clean_all
-    //
+    cout<<"Server shutted down"<<endl;
     exit(received_signal);
 }
