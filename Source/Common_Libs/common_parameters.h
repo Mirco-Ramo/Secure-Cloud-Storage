@@ -13,7 +13,7 @@
 #define CIPHER              EVP_aes_128_cbc()
 #define IV_LENGTH           16 //(unsigned int)EVP_CIPHER_iv_length(CIPHER)
 #define OPCODE_LENGTH       1
-#define MAX_PAYLOAD_LENGTH  8*1024 //16 Kb
+#define MAX_PAYLOAD_LENGTH  128*1024 //16 Kb
 #define MAX_FETCHABLE       16*1024*1024
 #define KEY_LEN             16 //EVP_CIPHER_key_length(CIPHER)
 #define BLOCK_LEN           16 //(unsigned int)EVP_CIPHER_block_size(CIPHER context)
