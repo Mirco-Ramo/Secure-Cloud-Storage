@@ -41,7 +41,7 @@ string Worker::GetStdoutFromCommand(string cmd) {
 }
 
 string Worker::get_file_list_as_string(){
-    return GetStdoutFromCommand(string("ls ../UserData/" + this->username));
+    return GetStdoutFromCommand(string("ls UserData/" + this->username));
 }
 
 vector<string> Worker::get_file_list_as_vector(){
@@ -60,7 +60,7 @@ vector<string> Worker::get_file_list_as_vector(){
 }
 
 bool Worker::check_filename_already_existing(string filename){
-    string find = GetStdoutFromCommand("find ../UserData/"+this->username +" -name  " +  filename);
+    string find = GetStdoutFromCommand("find UserData/"+this->username +" -name  " +  filename);
     if(find.size()>0)
         return true;
     return false;
@@ -436,7 +436,7 @@ bool Worker::handle_download(message* m1) {
         return true;
     }
 
-    filename = "../UserData/" + this->username + "/" + filename;
+    filename = "UserData/" + this->username + "/" + filename;
     bool file_found;
 
     unsigned long file_size = get_file_size(filename, file_found);
@@ -641,7 +641,7 @@ bool Worker::handle_upload(message* m1) {
         return true;
     }
 
-    filename = "../UserData/" + this->username + "/" + filename;
+    filename = "UserData/" + this->username + "/" + filename;
 
     unsigned int filesize;
     memcpy(&filesize, file_size->field, file_size->field_len);
@@ -885,8 +885,8 @@ bool Worker::handle_rename(message* m1) {
         send_failure_message(DUP_NAME, RENAME_RES, false);
         return true;
     }
-    old_filename = "../UserData/" + this->username + "/" + old_filename;
-    new_filename = "../UserData/" + this->username + "/" + new_filename;
+    old_filename = "UserData/" + this->username + "/" + old_filename;
+    new_filename = "UserData/" + this->username + "/" + new_filename;
 
     ret = rename(old_filename.c_str(), new_filename.c_str());
     if(ret != 0){
@@ -967,7 +967,7 @@ bool Worker::handle_delete(message* m1) {
         return true;
     }
 
-    filename = "../UserData/" + this->username + "/" + filename;
+    filename = "UserData/" + this->username + "/" + filename;
 
     if(!delete_file(filename)){
         cerr << "Error in deleting the file!" << endl;
