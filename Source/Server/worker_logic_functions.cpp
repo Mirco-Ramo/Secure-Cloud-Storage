@@ -72,7 +72,6 @@ void Worker::handleErrors(const string& reason, int exit_code){
     if (exit_code) {
         clean_all();
         delete this;
-        //TODO this is a temporary function
         pthread_exit((void*)(1));
     }
 }

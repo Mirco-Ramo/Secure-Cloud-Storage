@@ -182,8 +182,6 @@ int main(int argc, char** argv) {
     }
 
     close(client_socket);
-
-    //TODO disconnect();
     shutdown(0);
 
     return 0;

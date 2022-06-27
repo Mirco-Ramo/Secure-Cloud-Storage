@@ -286,7 +286,6 @@ unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsign
 bool write_file(unsigned char *file_chunk, unsigned int chunk_len, const string &filename) {
     string app = string((const char*) file_chunk, chunk_len);
 
-    //TODO set right path
     ofstream outfile;
     outfile.open(filename, std::ios_base::app);
     if(outfile.fail()){
