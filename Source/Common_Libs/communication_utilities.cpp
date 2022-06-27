@@ -277,7 +277,7 @@ unsigned char *read_chunk(const string &filename, unsigned int sent_size, unsign
             return nullptr;
         }
     }
-
+    file.close();
     memcpy(chunk, app, max_read);
 
 #pragma optimize("", off)

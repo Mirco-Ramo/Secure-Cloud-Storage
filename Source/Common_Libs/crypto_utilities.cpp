@@ -998,6 +998,7 @@ int verify_hmac(message* m, unsigned int counter, unsigned char* hmac_key){
     ret = CRYPTO_memcmp(computed_digest, m->hmac, DIGEST_LEN);
 
     free(computed_digest);
+    free(buffer_mac);
     if (ret != 0) { //Wrong digests
         cerr << "The message results to be not authenticated\n";
         return 0;
