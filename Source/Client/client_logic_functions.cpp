@@ -382,7 +382,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
             return false;
         }
 
-        cout << "Received " + to_string(recvd_i) + " bytes of " + to_string(total_file_size) << endl;
+        cout << "Received " + to_string(recvd_file) + " bytes of " + to_string(total_file_size) << endl;
 
 #pragma optimize("", off)
         memset(clear_chunk_buf, 0, clear_chunk_buf_len);
@@ -589,7 +589,7 @@ bool handle_upload(int socket_id, const string& identity,  const string& file_na
             sent_size_i +=payload_len_j;
         }
 
-        cout << "Sent " + to_string(sent_size_i) + " bytes of " + to_string(int_file_size) << endl;
+        cout << "Sent " + to_string(fetched_size) + " bytes of " + to_string(int_file_size) << endl;
     }
     cout<<"Upload completed"<<endl;
 
