@@ -41,7 +41,7 @@ string Worker::GetStdoutFromCommand(string cmd) {
 }
 
 string Worker::get_file_list_as_string(){
-    return GetStdoutFromCommand(string("ls UserData/" + this->username));
+    return GetStdoutFromCommand(string("ls ../UserData/" + this->username));
 }
 
 vector<string> Worker::get_file_list_as_vector(){
@@ -60,7 +60,7 @@ vector<string> Worker::get_file_list_as_vector(){
 }
 
 bool Worker::check_filename_already_existing(string filename){
-    string find = GetStdoutFromCommand("find UserData/"+this->username +" -name  " +  filename);
+    string find = GetStdoutFromCommand("find ../UserData/"+this->username +" -name  " +  filename);
     if(find.size()>0)
         return true;
     return false;
@@ -436,7 +436,7 @@ bool Worker::handle_download(message* m1) {
         return true;
     }
 
-    filename = "UserData/" + this->username + "/" + filename;
+    filename = "../UserData/" + this->username + "/" + filename;
     bool file_found;
 
     unsigned long file_size = get_file_size(filename, file_found);
@@ -641,7 +641,7 @@ bool Worker::handle_upload(message* m1) {
         return true;
     }
 
-    filename = "UserData/" + this->username + "/" + filename;
+    filename = "../UserData/" + this->username + "/" + filename;
 
     unsigned int filesize;
     memcpy(&filesize, file_size->field, file_size->field_len);
@@ -681,7 +681,7 @@ bool Worker::handle_upload(message* m1) {
     delete m2;
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
@@ -692,7 +692,7 @@ bool Worker::handle_upload(message* m1) {
     unsigned char* enc_chunk_buf = (unsigned char*)malloc(2*MAX_FETCHABLE);
     unsigned char* clear_chunk_buf;
     if(!enc_chunk_buf){
-        cerr << "["+this->identity+"]: Cannot allocate buffer to save chunks" << endl;
+        cerr << "Cannot allocate buffer to save chunks" << endl;
         return false;
     }
     allocatedBuffers.push_back({ENC_BUFFER, enc_chunk_buf});
@@ -701,10 +701,10 @@ bool Worker::handle_upload(message* m1) {
     while(recvd_file<filesize) {
         auto *m3j = new message();
         if (recv_msg(socket_id, m3j, true, identity) <= 0) {
-            cerr << "["+this->identity+"]: Cannot receive M3 from client" << endl;
-            cerr << "["+this->identity+"]: I downloaded: "<<recvd_file<<endl;
+            cerr << "Cannot receive M3 from client" << endl;
+            cerr << "I downloaded: "<<recvd_file<<endl;
             if (!delete_file(filename)) {
-                cerr << "["+this->identity+"]: The file was not downloaded completely, but it was impossible to delete it."
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
@@ -714,16 +714,16 @@ bool Worker::handle_upload(message* m1) {
         if (ret != 1) {
             cerr << "HMAC is not matching, closing connection" << endl;
             if (!delete_file(filename)) {
-                cerr << "["+this->identity+"]: The file was not downloaded completely, but it was impossible to delete it."
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
         }
 
         if (client_counter == UINT_MAX) {
-            cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
+            cerr << "Maximum number of messages reached for a session, closing connection" << endl;
             if (!delete_file(filename)) {
-                cerr << "["+this->identity+"]: The file was not downloaded completely, but it was impossible to delete it."
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
@@ -731,9 +731,9 @@ bool Worker::handle_upload(message* m1) {
         client_counter++;
 
         if (m3j->header.opcode != UPLOAD_DATA) {
-            cerr << "["+this->identity+"]: Received an M3 response with unexpected opcode: " << (int) m3j->header.opcode << endl;
+            cerr << "Received an M3 response with unexpected opcode: " << (int) m3j->header.opcode << endl;
             if (!delete_file(filename)) {
-                cerr << "["+this->identity+"]: The file was not downloaded completely, but it was impossible to delete it."
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
@@ -742,9 +742,9 @@ bool Worker::handle_upload(message* m1) {
         if(recvd_i>0 && memcmp(IV_buffer, m3j->header.initialization_vector, IV_LENGTH)!=0){
             ret = symm_decrypt(enc_chunk_buf, recvd_i, session_key, IV_buffer, clear_chunk_buf, clear_chunk_buf_len);
             if (ret == 0) {
-                cerr << "["+this->identity+"]: Cannot decrypt message M2!" << endl;
+                cerr << "Cannot decrypt message M2!" << endl;
                 if (!delete_file(filename)) {
-                    cerr << "["+this->identity+"]: The file was not downloaded completely, but it was impossible to delete it."
+                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
                             "We suggest to delete the file manually for safety purposes." << endl;
                 }
                 return false;
@@ -752,7 +752,7 @@ bool Worker::handle_upload(message* m1) {
 
             if (!write_file(clear_chunk_buf, clear_chunk_buf_len, filename)) {
                 if (!delete_file(filename)) {
-                    cerr << "["+this->identity+"]: The file was not downloaded completely, but it was impossible to delete it."
+                    cerr << "The file was not downloaded completely, but it was impossible to delete it."
                             "We suggest to delete the file manually for safety purposes." << endl;
                 }
                 return false;
@@ -773,9 +773,9 @@ bool Worker::handle_upload(message* m1) {
     if(recvd_i>0){
         ret = symm_decrypt(enc_chunk_buf, recvd_i, session_key, IV_buffer, clear_chunk_buf, clear_chunk_buf_len);
         if (ret == 0) {
-            cerr << "["+this->identity+"]Cannot decrypt message M3!" << endl;
+            cerr << "Cannot decrypt message M3!" << endl;
             if (!delete_file(filename)) {
-                cerr << "["+this->identity+"]The file was not downloaded completely, but it was impossible to delete it."
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
@@ -783,7 +783,7 @@ bool Worker::handle_upload(message* m1) {
 
         if (!write_file(clear_chunk_buf, clear_chunk_buf_len, filename)) {
             if (!delete_file(filename)) {
-                cerr << "["+this->identity+"]The file was not downloaded completely, but it was impossible to delete it."
+                cerr << "The file was not downloaded completely, but it was impossible to delete it."
                         "We suggest to delete the file manually for safety purposes." << endl;
             }
             return false;
@@ -824,7 +824,7 @@ bool Worker::handle_upload(message* m1) {
     delete m4;
 
     if(this->worker_counter == UINT_MAX){
-        cerr << "["+this->identity+"]: Maximum number of messages reached for a session, closing connection" << endl;
+        cerr << "["+this->identity+"]Maximum number of messages reached for a session, closing connection" << endl;
         return false;
     }
     this->worker_counter++;
@@ -875,22 +875,22 @@ bool Worker::handle_rename(message* m1) {
     }
 
     if(!check_filename_not_traversing(new_filename)){
-        cerr << "["+this->identity+"]The name of the file is not acceptable!" << endl;
+        cerr << "The name of the file is not acceptable!" << endl;
         send_failure_message(INVALID_FILENAME, RENAME_RES, false);
         return true;
     }
 
     if(check_filename_already_existing(new_filename)){
-        cerr << "["+this->identity+"]There is already a file with such name in the storage!"<<endl;
+        cerr << "There is already a file with such name in the storage!"<<endl;
         send_failure_message(DUP_NAME, RENAME_RES, false);
         return true;
     }
-    old_filename = "UserData/" + this->username + "/" + old_filename;
-    new_filename = "UserData/" + this->username + "/" + new_filename;
+    old_filename = "../UserData/" + this->username + "/" + old_filename;
+    new_filename = "../UserData/" + this->username + "/" + new_filename;
 
     ret = rename(old_filename.c_str(), new_filename.c_str());
     if(ret != 0){
-        cerr << "["+this->identity+"]Impossible to change name to file!" << endl;
+        cerr << "Impossible to change name to file!" << endl;
         send_failure_message(INVALID_FILENAME, RENAME_RES, false);
         return true;
     }
@@ -967,7 +967,7 @@ bool Worker::handle_delete(message* m1) {
         return true;
     }
 
-    filename = "UserData/" + this->username + "/" + filename;
+    filename = "../UserData/" + this->username + "/" + filename;
 
     if(!delete_file(filename)){
         cerr << "Error in deleting the file!" << endl;

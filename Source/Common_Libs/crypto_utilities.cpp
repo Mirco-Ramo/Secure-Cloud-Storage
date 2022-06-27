@@ -19,7 +19,7 @@ bool check_username(const string& username){
 char* canonicalize(const string& file_name){
     //canonicalization//
     //e.g.   ../file.txt  =>  /home/user/myfiles/file.txt
-    char* canon_file_name = realpath((file_name).c_str(), NULL);
+    char* canon_file_name = realpath(("./"+file_name).c_str(), NULL);
     if(!canon_file_name)
         return NULL;
     return canon_file_name;
@@ -47,8 +47,6 @@ bool check_file_name(const string& file_name){
     char* canon_file_name = canonicalize(file_name);
     if(canon_file_name == NULL)
         return false;
-
-    cout<<"Canonicalization done"<<endl;
 
     if(strncmp(canon_file_name, "/home/", strlen("/home/")) != 0) {
         free(canon_file_name);
