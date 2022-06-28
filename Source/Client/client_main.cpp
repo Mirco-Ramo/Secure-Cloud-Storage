@@ -78,6 +78,11 @@ int main(int argc, char** argv) {
             cout << "Please insert the name of the file you want to download" << endl << PROMPT;
             getline(cin, filename);
 
+            if(filename.empty() || filename.size() > MAX_FILENAME_CHARS){
+                cout << "The name of the file cannot be longer than 30 characters! Please use a shorter name" << endl << PROMPT;
+                continue;
+            }
+
             if(!check_filename_not_traversing(filename)){
                 cout << "The name of the file is not correct, please insert a correct name "
                         "(use the LIST command to check which file are present in your dedicated storage)" << endl << PROMPT;
@@ -101,6 +106,11 @@ int main(int argc, char** argv) {
             string filename;
             cout << "Please insert the name of the file you want to upload" << endl << PROMPT;
             getline(cin, filename);
+
+            if(filename.empty() || filename.size() > MAX_FILENAME_CHARS){
+                cout << "The name of the file cannot be longer than 30 characters! Please use a shorter name" << endl << PROMPT;
+                continue;
+            }
 
             if(!check_file_name(filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
@@ -126,6 +136,11 @@ int main(int argc, char** argv) {
             getline(cin, old_filename);
             cout << endl << PROMPT;
 
+            if(old_filename.empty() || old_filename.size() > MAX_FILENAME_CHARS){
+                cout << "The name of the file cannot be longer than 30 characters! Please use a shorter name" << endl << PROMPT;
+                continue;
+            }
+
             if(!check_filename_not_traversing(old_filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
                 continue;
@@ -134,6 +149,11 @@ int main(int argc, char** argv) {
             string new_filename;
             cout << "Please insert the new name you want to give to the file (must not be already present as a name of a file in the storage)" << endl << PROMPT;
             getline(cin, new_filename);
+
+            if(new_filename.empty() || new_filename.size() > MAX_FILENAME_CHARS){
+                cout << "The name of the file cannot be longer than 30 characters! Please use a shorter name" << endl << PROMPT;
+                continue;
+            }
 
             if(!check_filename_not_traversing(new_filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
@@ -152,6 +172,11 @@ int main(int argc, char** argv) {
             string filename;
             cout << "Please insert the name of the file you want to delete" << endl << PROMPT;
             getline(cin,filename);
+
+            if(filename.empty() || filename.size() > MAX_FILENAME_CHARS){
+                cout << "The name of the file cannot be longer than 30 characters! Please use a shorter name" << endl << PROMPT;
+                continue;
+            }
 
             if(!check_filename_not_traversing(filename)){
                 cout << "The name of the file is not acceptable, please insert a correct name" << endl << PROMPT;
@@ -176,7 +201,7 @@ int main(int argc, char** argv) {
             logout_request = true;
         }
         else{
-            cerr << "Invalid command."<<endl;
+            cerr << "Invalid command."<<endl<<PROMPT;
             continue;
         }
     }
