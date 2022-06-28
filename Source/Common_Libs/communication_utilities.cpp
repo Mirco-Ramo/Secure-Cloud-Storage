@@ -115,11 +115,14 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
         total_serialized +=DIGEST_LEN;
     }
 
-    ret = send(socket_id,(void*)buffer_message, total_serialized, 0);
-    if(ret<total_serialized){
-        cout << "["+identity+"]:"<< "Failed to send message " << (unsigned int)msg->header.opcode<<endl;
-        free(buffer_message);
-        return -1;
+    int done = 0;
+    while (done < total_serialized) {
+        ret = send(socket_id, (void *) (buffer_message+done), total_serialized-done, 0);
+        if (ret < 0) {
+            cout << "[" + identity + "]:" << "Failed to send message " << (unsigned int) msg->header.opcode << endl;
+            continue;
+        }
+        done += ret;
     }
     free(buffer_message);
     return ret;
@@ -186,11 +189,14 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
         return -1;
     }
 
-    ret = recv(socket_id,(void*)buffer_message, payload_length, 0);
-    if(ret < (int)payload_length){
-        free(buffer_message);
-        cout << "["+identity+"]:"<< "Payload receive failed" << endl;
-        return -1;
+    int done = 0;
+    while(done < payload_length) {
+        ret = recv(socket_id, (void *) (buffer_message+done), payload_length-done, 0);
+        if (ret < 0) {
+            cout << "[" + identity + "]:" << "Payload receive failed" << endl;
+            continue;
+        }
+        done += ret;
     }
 
     msg->payload = buffer_message;
@@ -203,16 +209,19 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
         cout << "["+identity+"]:"<< "Cannot allocate buffer to receive hmac" << endl;
         return -1;
     }
-    ret = recv(socket_id,(void*)buffer_hmac, DIGEST_LEN, 0);
-    if(ret < DIGEST_LEN){
-        free(buffer_hmac);
-        cout << "["+identity+"]:"<< "Hmac receive failed" << endl;
-        return -1;
+    done = 0;
+    while(done < DIGEST_LEN) {
+        ret = recv(socket_id, (void *)(buffer_hmac+done), DIGEST_LEN-done, 0);
+        if (ret < 0) {
+            cout << "[" + identity + "]:" << "Hmac receive failed" << endl;
+            continue;
+        }
+        done += ret;
     }
 
     memcpy(msg->hmac, buffer_hmac, DIGEST_LEN);
     free(buffer_hmac);
-    return FIXED_HEADER_LENGTH + payload_length + ret;
+    return FIXED_HEADER_LENGTH + payload_length + done;
 }
 
 bool get_payload_fields(const unsigned char* total_payload, payload_field* fields[], const unsigned short num_fields){
