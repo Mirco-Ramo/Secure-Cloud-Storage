@@ -125,7 +125,7 @@ int send_msg(int socket_id, message* msg, bool hmac, string identity){
         done += ret;
     }
     free(buffer_message);
-    return ret;
+    return done;
 }
 
 
@@ -190,7 +190,7 @@ int recv_msg(int socket_id, message *msg, bool hmac, string identity) {
     }
 
     int done = 0;
-    while(done < payload_length) {
+    while(done < (int)payload_length) {
         ret = recv(socket_id, (void *) (buffer_message+done), payload_length-done, 0);
         if (ret < 0) {
             cout << "[" + identity + "]:" << "Payload receive failed" << endl;
