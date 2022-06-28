@@ -290,7 +290,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
     unsigned int clear_chunk_buf_len;
 
     unsigned int recvd_i = 0;
-    while(recvd_file<total_file_size) {
+    while(recvd_file+recvd_i<total_file_size) {
         auto *m2j = new message();
         if (recv_msg(socket_id, m2j, true, identity) <= 0) {
             cerr << "Cannot receive M2 from server" << endl;
@@ -354,11 +354,12 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
             memset(clear_chunk_buf, 0, clear_chunk_buf_len);
 #pragma optimze("", on)
             free(clear_chunk_buf);
+            recvd_file += clear_chunk_buf_len;
             recvd_i = 0;
         }
         memcpy(IV_buffer, m2j->header.initialization_vector, IV_LENGTH);
         memcpy(enc_chunk_buf + recvd_i, m2j->payload, m2j->header.payload_length);
-        recvd_file += m2j->header.payload_length;
+
         recvd_i +=m2j->header.payload_length;
         delete m2j;
     }
@@ -381,6 +382,7 @@ bool handle_download(int socket_id, const string& identity,  const string& file_
             }
             return false;
         }
+        recvd_file+=clear_chunk_buf_len;
 
         cout << "Received " + to_string(recvd_file) + " bytes of " + to_string(total_file_size) << endl;
 

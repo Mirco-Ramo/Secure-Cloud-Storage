@@ -701,7 +701,7 @@ bool Worker::handle_upload(message* m1) {
     allocatedBuffers.push_back({ENC_BUFFER, enc_chunk_buf});
 
     unsigned int recvd_i = 0;
-    while(recvd_file<filesize) {
+    while(recvd_file+recvd_i<filesize) {
         auto *m3j = new message();
         if (recv_msg(socket_id, m3j, true, identity) <= 0) {
             cerr << "Cannot receive M3 from client" << endl;
@@ -764,11 +764,12 @@ bool Worker::handle_upload(message* m1) {
             memset(clear_chunk_buf, 0, clear_chunk_buf_len);
 #pragma optimze("", on)
             free(clear_chunk_buf);
+            recvd_file += clear_chunk_buf_len;
             recvd_i = 0;
         }
         memcpy(IV_buffer, m3j->header.initialization_vector, IV_LENGTH);
         memcpy(enc_chunk_buf + recvd_i, m3j->payload, m3j->header.payload_length);
-        recvd_file += m3j->header.payload_length;
+
         recvd_i +=m3j->header.payload_length;
         delete m3j;
     }
@@ -791,6 +792,9 @@ bool Worker::handle_upload(message* m1) {
             }
             return false;
         }
+
+        recvd_file+=clear_chunk_buf_len;
+
 #pragma optimize("", off)
         memset(clear_chunk_buf, 0, clear_chunk_buf_len);
 #pragma optimze("", on)
